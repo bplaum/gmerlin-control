@@ -12,5 +12,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 bin_PROGRAMS = energenie shellyplug
 
-energenie_LDADD = $(top_builddir)/lib/libgmerlin.la -ldl
-shellyplug_LDADD = $(top_builddir)/lib/libgmerlin.la -ldl  @JSON_LIBS@
+energenie_LDADD = @GAVL_LIBS@ @GMERLIN_LIBS@ -ldl
+shellyplug_LDADD = @GAVL_LIBS@ @GMERLIN_LIBS@ -ldl @JSON_LIBS@

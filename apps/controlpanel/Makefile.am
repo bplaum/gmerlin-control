@@ -18,7 +18,7 @@ gmerlin-controlpanel.c
 gmerlin_controlpanel_ctl_SOURCES = \
 gmerlin-controlpanel-ctl.c
 
-gmerlin_controlpanel_LDADD = @GMERLIN_LIBS@
-gmerlin_controlpanel_ctl_LDADD = @GMERLIN_LIBS@
+gmerlin_controlpanel_LDADD = @GMERLIN_LIBS@ @GAVL_LIBS@
+gmerlin_controlpanel_ctl_LDADD = @GMERLIN_LIBS@ @GAVL_LIBS@
 
 # EXTRA_DIST = gmerlin-remote.desktop
