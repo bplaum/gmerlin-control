@@ -1132,9 +1132,13 @@ int main(int argc, char ** argv)
   gavl_value_init(&val);
   gavl_value_set_int(&val, port);
   bg_http_server_set_parameter(srv, "port", &val);
-  
-  bg_http_server_set_root_file(srv, "/static/controlpanel.html");
+
+  /* Must be first */
+  bg_http_server_set_root_file(srv, "/static2/controlpanel.html");
+
   bg_http_server_set_static_path(srv, "/static");
+  bg_http_server_add_static_path(srv, "/static2", DATA_DIR "/web");
+  
   bg_http_server_add_handler(srv, server_handle_manifest, BG_HTTP_PROTO_HTTP, NULL, NULL);
 
   bg_http_server_add_handler(srv, handle_command_uri, BG_HTTP_PROTO_HTTP, "/command", NULL);

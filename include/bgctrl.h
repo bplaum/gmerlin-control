@@ -17,21 +17,17 @@
 ]
 */
 
-
-typedef enum
-  {
-    BGCTRL_TYPE_NONE       = 0,
-    BGCTRL_TYPE_BUTTON     = 1,
-    BGCTRL_TYPE_SLIDER     = 2,
-    BGCTRL_TYPE_METER      = 3,
-    BGCTRL_TYPE_VOLUME     = 4,
-    BGCTRL_TYPE_CONTAINER  = 5,
-  } bgctrl_type_t;
-
 #define BGCTRL_LABEL GAVL_META_LABEL
-#define BGCTRL_NAME       "name"
-#define BGCTRL_TYPE       "type"
-#define BGCTRL_DESCPITION "desc"
+#define BGCTRL_NAME        "name"
+#define BGCTRL_TYPE        "type"
+
+#define BGCTRL_TYPE_CONTAINER "container"
+#define BGCTRL_TYPE_BUTTON    "button"
+#define BGCTRL_TYPE_SLIDER    "slider"
+#define BGCTRL_TYPE_METER     "meter"
+#define BGCTRL_TYPE_VOLUME    "volume"
+
+#define BGCTRL_DESCPRITION "desc"
 
 #define BGCTRL_VAL_MIN  "min"
 #define BGCTRL_VAL_MIN  "max"
@@ -66,7 +62,6 @@ typedef struct bgctrl_backend_handle_s bgctrl_backend_handle_t;
 bgctrl_backend_handle_t * bgctrl_backend_handle_create(const char * uri);
 void bgctrl_backend_handle_destroy(bgctrl_backend_handle_t * h);
 bg_controllable_t * bgctrl_backend_handle_get_controllable(bgctrl_backend_handle_t * h);
-
 
 #define BCTRL_MSG_NS 300
 

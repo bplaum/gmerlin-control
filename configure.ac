@@ -55,6 +55,9 @@ m4/Makefile \
 apps/Makefile \
 apps/controlpanel/Makefile \
 tests/Makefile \
+web/Makefile \
+web/js/Makefile \
+web/css/Makefile \
 ])
 
 AC_OUTPUT
