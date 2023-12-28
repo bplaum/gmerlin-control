@@ -64,7 +64,7 @@ function global_init()
   console.log("global init()");
   controls = new Object();      
 
-  ws =  new WebSocket("ws://" +  window.location.host + "/ws/state", ['json']);
+  ws =  new WebSocket("ws://" +  window.location.host + "/ws/backend.controlpanel", ['json']);
 
   ws.onclose = function(evt)
     {
