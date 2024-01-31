@@ -14,7 +14,7 @@
 #include <gmerlin/cmdline.h>
 
 static char * addr = NULL;
-gavf_io_t * io = NULL;
+gavl_io_t * io = NULL;
 
 
 static void opt_addr(void * data, int * argc, char *** _argv, int arg)
@@ -29,7 +29,7 @@ static void opt_addr(void * data, int * argc, char *** _argv, int arg)
 
   if(io)
     {
-    gavf_io_destroy(io);
+    gavl_io_destroy(io);
     io = NULL;
     }
 
@@ -59,7 +59,7 @@ static void opt_set(void * data, int * argc, char *** _argv, int arg)
   cmd = bg_sprintf("%s/command?c=set&var=%s&val=%s", addr, var, val);
 #if 0
   bg_http_send_request(cmd, 0, NULL, &io);
-  bg_http_read_response(gavf_io_t * io, int timeout,
+  bg_http_read_response(gavl_io_t * io, int timeout,
                         char ** redirect,
                         gavl_dictionary_t * res)
 #endif

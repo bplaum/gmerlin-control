@@ -46,7 +46,7 @@ static int delay = 0;
 
 static char * address = NULL;
 
-gavf_io_t * io = NULL;
+gavl_io_t * io = NULL;
 
 #define LOG_DOMAIN "energenie"
 
@@ -157,11 +157,11 @@ static int http_send_request(const char * uri,
                              gavl_buffer_t * res_body)
   {
   int ret;
-  gavf_io_t * c = gavl_http_client_create();
+  gavl_io_t * c = gavl_http_client_create();
   
   gavl_http_client_set_response_body(c, res_body);
   ret = gavl_http_client_open(c, "GET", uri);
-  gavf_io_destroy(c);
+  gavl_io_destroy(c);
   return ret;
   }
 

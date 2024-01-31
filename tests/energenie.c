@@ -50,7 +50,7 @@ static int delay = 0;
 static char * address = NULL;
 static char * password = "1";
 
-gavf_io_t * io = NULL;
+gavl_io_t * io = NULL;
 
 #define LOG_DOMAIN "energenie"
 
@@ -206,7 +206,7 @@ static int http_send_request(gavl_dictionary_t * request,
     goto fail;
 
   if(!io)
-    io = gavf_io_create_socket(fd, 30000, GAVF_IO_SOCKET_DO_CLOSE);
+    io = gavl_io_create_socket(fd, 30000, GAVF_IO_SOCKET_DO_CLOSE);
   
   if(req_body)
     {
@@ -226,7 +226,7 @@ static int http_send_request(gavl_dictionary_t * request,
     goto fail;
 
   if(req_body)
-    gavf_io_write_data(io, (const uint8_t*)req_body, body_len);
+    gavl_io_write_data(io, (const uint8_t*)req_body, body_len);
   
   if(!gavl_http_response_read(io, &response))
     goto fail;
@@ -290,7 +290,7 @@ static int logout()
   int ret = 0;
   gavl_dictionary_t request;
 
-  gavf_io_destroy(io);
+  gavl_io_destroy(io);
   io = NULL;
 
   /* Read the login page */
@@ -531,7 +531,7 @@ int main(int argc, char ** argv)
     }
 
   if(io)
-    gavf_io_destroy(io);
+    gavl_io_destroy(io);
   
   return EXIT_SUCCESS;
 

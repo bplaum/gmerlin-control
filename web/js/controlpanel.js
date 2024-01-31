@@ -64,7 +64,9 @@ function global_init()
   console.log("global init()");
   controls = new Object();      
 
-  ws =  new WebSocket("ws://" +  window.location.host + "/ws/backend.controlpanel", ['json']);
+  ws =  new WebSocket("ws://" +
+                      window.location.host + "/ws/" + GAVL_META_MEDIA_CLASS_BACKEND_CONTROLPANEL,
+		      ['json']);
 
   ws.onclose = function(evt)
     {

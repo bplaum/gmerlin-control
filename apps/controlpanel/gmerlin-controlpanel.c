@@ -246,7 +246,7 @@ static void load_controls(const char * filename)
   int line_alloc = 0;
   
   FILE * in;
-  gavf_io_t * io;
+  gavl_io_t * io;
   control_t * cur = NULL;
 
   gavl_dictionary_t * item = NULL;
@@ -254,9 +254,9 @@ static void load_controls(const char * filename)
   if(!(in = fopen(filename, "r")))
     return;
 
-  io = gavf_io_create_file(in, 0, 1, 1);
+  io = gavl_io_create_file(in, 0, 1, 1);
 
-  while(gavf_io_read_line(io, &line, &line_alloc, 1024))
+  while(gavl_io_read_line(io, &line, &line_alloc, 1024))
     {
     line = gavl_strtrim(line);
     
@@ -316,7 +316,7 @@ static void load_controls(const char * filename)
     
     }
     
-  gavf_io_destroy(io);
+  gavl_io_destroy(io);
 
   
   }
@@ -1148,7 +1148,7 @@ int main(int argc, char ** argv)
                        bg_msg_hub_create(1));
 
   
-  ws = bg_websocket_context_create(GAVL_META_MEDIA_CLASS_BACKEND_CONTROLPANEL, srv, NULL, &ctrl);
+  ws = bg_websocket_context_create(GAVL_META_MEDIA_CLASS_BACKEND_CONTROLPANEL, NULL, &ctrl);
   
   init_state();
 
