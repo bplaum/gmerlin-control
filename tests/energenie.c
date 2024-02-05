@@ -481,7 +481,7 @@ static void get_socket()
 
 int main(int argc, char ** argv)
   {
-  bg_app_init("energenie", "Energenie control");
+  bg_app_init("energenie", "Energenie control", NULL);
     
   /* Get commandline options */
   bg_cmdline_init(&app_data);

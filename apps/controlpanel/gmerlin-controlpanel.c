@@ -467,7 +467,7 @@ static int server_handle_manifest(bg_http_connection_t * conn, void * data)
   bg_http_connection_check_keepalive(conn);
       
   //      fprintf(stderr, "Referer: %s\n", var);
-  bg_url_split(var, &protocol, NULL, NULL, &host, &port, NULL);
+  gavl_url_split(var, &protocol, NULL, NULL, &host, &port, NULL);
 
   start_url = bg_sprintf("%s://%s:%d", protocol, host, port);
 

@@ -221,7 +221,7 @@ static int set_socket(int on)
 
 int main(int argc, char ** argv)
   {
-  bg_app_init("shellyplug", "Client for Shelly Plug S");
+  bg_app_init("shellyplug", "Client for Shelly Plug S", NULL);
   
   /* Get commandline options */
   bg_cmdline_init(&app_data);
