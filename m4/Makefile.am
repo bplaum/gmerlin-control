@@ -1,3 +1,3 @@
-EXTRA_DIST = $(wildcard *.m4)
+EXTRA_DIST = %.m4
 
 

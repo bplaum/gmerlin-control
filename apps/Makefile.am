@@ -1,1 +1,3 @@
-SUBDIRS = controlpanel
+SUBDIRS = \
+controlpanel \
+control

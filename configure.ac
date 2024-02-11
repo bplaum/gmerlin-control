@@ -41,6 +41,13 @@ GMERLIN_REQUIRED="2.0.0"
 PKG_CHECK_MODULES(GMERLIN, gmerlin >= $GMERLIN_REQUIRED, , AC_MSG_ERROR("gmerlin not found"))
 
 AC_SUBST(GMERLIN_REQUIRED)
+gmerlin_plugindir='$(libdir)/gmerlin/plugins'
+
+dnl LDFLAGS for plugins
+GMERLIN_PLUGIN_LDFLAGS="-export-symbols "`pkg-config --variable=prefix gmerlin`"/share/gmerlin/plugin.sym $SAVE_LDFLAGS"
+
+AC_SUBST(GMERLIN_PLUGIN_LDFLAGS)
+AC_SUBST(gmerlin_plugindir)
 
 JSON_REQUIRED="0.11.0"
 PKG_CHECK_MODULES(JSON, json-c >= $JSON_REQUIRED, , AC_MSG_ERROR("json not found"))
@@ -54,6 +61,8 @@ lib/Makefile \
 m4/Makefile \
 apps/Makefile \
 apps/controlpanel/Makefile \
+apps/control/Makefile \
+plugins/Makefile \
 tests/Makefile \
 web/Makefile \
 web/js/Makefile \

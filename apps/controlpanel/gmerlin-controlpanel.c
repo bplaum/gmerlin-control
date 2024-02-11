@@ -1148,7 +1148,7 @@ int main(int argc, char ** argv)
                        bg_msg_hub_create(1));
 
   
-  ws = bg_websocket_context_create(GAVL_META_MEDIA_CLASS_BACKEND_CONTROLPANEL, NULL, &ctrl);
+  ws = bg_websocket_context_create(GAVL_META_CLASS_BACKEND_CONTROLPANEL, NULL, &ctrl);
   
   init_state();
 
