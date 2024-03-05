@@ -1,0 +1,112 @@
+body * {
+    outline: none;
+    font-size: inherit;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+
+}
+
+html, body
+  {
+  min-height: 100%;
+  }
+
+html
+  {
+  font-size: 36px;
+  font-family: sans-serif-condensed,Helvetica,Arial,sans-serif;
+  }
+
+body
+  {
+  margin:      0px;
+  height: 100%;
+  }
+
+/* Header and Footer */
+
+header, footer {
+    position: fixed;
+    left: 0px;
+    right: 0px;
+    z-index: 50;
+  }
+
+header
+  {
+    top: 0px;
+    border-bottom-style: none;
+  }
+
+footer
+  {
+    bottom: 0px;
+    border-top-style: none;
+  }
+
+div#browser > div
+  {
+  padding: 5px;
+  }
+
+
+
+/* Control */
+
+div[data-klass="control.slider"] input,
+div[data-klass="control.button"] button,
+div[data-klass="control.meter"] meter
+  {
+  width: 100%;
+  }
+
+div[data-klass="control.power"][data-value="1"] button
+  {
+  color: #00ff00;
+  }
+
+div[data-klass="control.power"][data-value="0"] button
+  {
+  color: #404040;
+  }
+
+div[data-klass="container"] button,
+div[data-klass="control.link"] button
+  {
+      border-style: none;
+/*      border: none; */
+      width:  1.4em;
+      height: 1.4em;
+      font-size: 150%;
+      background-color: transparent;
+      color: inherit;
+  }
+
+div[data-klass="container"] button:active,
+div[data-klass="control.link"] button:active
+  {
+      border-style: solid;
+      background-color: #404040;
+      color: #e0e0e0;
+  }
+
+div[data-klass="container"],
+div[data-klass="control.link"]
+  {
+  border-width: 2pt;
+  border-style: solid;
+  background: #e0e0e0;
+  }
+
+
+div[data-klass="container"] .icon-folder,
+div[data-klass="control.link"] .icon-globe
+  {
+  width:  1.4em;
+  height: 1.4em;
+  font-size: 150%;
+  }
+

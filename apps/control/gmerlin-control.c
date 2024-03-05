@@ -45,7 +45,8 @@ static int flags = 0;
 bg_control_t ctrl;
 
 static gavl_dictionary_t controls;
-static gavl_dictionary_t state;
+// static gavl_dictionary_t state;
+
 
 static char * extract_var_val(const char * arg, gavl_value_t * val)
   {
@@ -107,27 +108,30 @@ static void cmd_setrel(void * data, int * argc, char *** argv, int arg)
   {
   char * var;
   gavl_value_t val;
-  gavl_msg_t * msg;
   
   gavl_value_init(&val);
 
   if(arg >= *argc)
     {
-    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Option -setrel requires an argument");
+    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Option -set-rel requires an argument");
     exit(-1);
     }
 
   if(!(var = extract_var_val((*argv)[arg], &val)))
     exit(-1);
 
-  msg = bg_msg_sink_get(ctrl.cmd_sink);
-  gavl_msg_set_state(msg, GAVL_CMD_SET_STATE_REL,
-                     1, "/", var, &val);
+  if(gavl_control_handle_set_rel(&controls, "/", var, &val))
+    {
+    gavl_msg_t * msg;
+    msg = bg_msg_sink_get(ctrl.cmd_sink);
+    gavl_msg_set_state(msg, GAVL_CMD_SET_STATE,
+                       1, "/", var, &val);
 
-  if(delay > 0)
-    gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
+    if(delay > 0)
+      gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
   
-  bg_msg_sink_put(ctrl.cmd_sink);
+    bg_msg_sink_put(ctrl.cmd_sink);
+    }
   
   bg_cmdline_remove_arg(argc, argv, arg);
   gavl_value_free(&val);
@@ -137,14 +141,23 @@ static void cmd_setrel(void * data, int * argc, char *** argv, int arg)
 static void cmd_get(void * data, int * argc, char *** argv, int arg)
   {
   const gavl_value_t * val;
+  const gavl_dictionary_t * control;
 
   if(arg >= *argc)
     {
     gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Option -get requires an argument");
     exit(-1);
     }
+
+  if(!(control = gavl_control_get(&controls, "/")) ||
+     !(control = gavl_control_get(&controls, (*argv)[arg])) ||
+     !(val = gavl_dictionary_get(control, GAVL_CONTROL_VALUE)))
+    {
+    if(!control)
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "No such control %s", (*argv)[arg]);
+    exit(-1);
+    }
   
-  val = bg_state_get(&state, "/", (*argv)[arg]);
   bg_cmdline_remove_arg(argc, argv, arg);
   
   gavl_value_dump(val, 0);
@@ -274,6 +287,7 @@ static int handle_msg(void * priv, gavl_msg_t * msg)
         {
         case BG_MSG_STATE_CHANGED:
           {
+          gavl_dictionary_t * ctrl;
           gavl_value_t val;
           const char * ctx;
           const char * var;
@@ -286,14 +300,11 @@ static int handle_msg(void * priv, gavl_msg_t * msg)
                              &ctx,
                              &var,
                              &val, NULL);
-          
-          bg_state_set(&state,
-                       last,
-                       ctx,
-                       var,
-                       &val,
-                       NULL, 0);
 
+          if((ctrl = gavl_control_get_create(&controls, ctx)) &&
+             (ctrl = gavl_control_get_create(&controls, var)))
+            gavl_dictionary_set_nocopy(ctrl, GAVL_CONTROL_VALUE, &val);
+          
           gavl_value_free(&val);
           
           if(last)
@@ -305,13 +316,11 @@ static int handle_msg(void * priv, gavl_msg_t * msg)
     case GAVL_MSG_NS_CONTROL:
       switch(msg->ID)
         {
-        case GAVL_MSG_CONTROL_ENABLED:
+        case GAVL_MSG_CONTROL_CHANGED:
           break; 
-        case GAVL_MSG_CONTROL_DISABLED:
+        case GAVL_MSG_CONTROL_OPTION_ADDED:
           break; 
-        case GAVL_CMD_CONTROL_OPTION_ADDED:
-          break; 
-        case GAVL_CMD_CONTROL_OPTION_REMOVED:
+        case GAVL_MSG_CONTROL_OPTION_REMOVED:
           break; 
         case GAVL_MSG_CONTROL_IDLE:
           flags |= FLAG_IDLE;
@@ -334,7 +343,6 @@ int main(int argc, char ** argv)
   bg_controllable_t * controllable = NULL;
 
   gavl_dictionary_init(&controls);
-  gavl_dictionary_init(&state);
   
   bg_plugins_init();
 

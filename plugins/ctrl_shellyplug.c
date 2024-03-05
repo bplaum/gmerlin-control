@@ -47,6 +47,8 @@ static void set_offline(shelly_t * s)
     s->io = NULL;
     }
   s->status = STATE_OFFLINE;
+  s->last_poll_time = gavl_time_get_monotonic();
+  gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s seems to be offline", s->addr);
   }
 
 static int handle_msg(shelly_t * s)
@@ -73,7 +75,7 @@ static int handle_msg(shelly_t * s)
                              &var,
                              &val, NULL);
 
-          //      fprintf(stderr, "Set state %s %s\n", ctx, var);
+          fprintf(stderr, "Set state shelly %s %s\n", ctx, var);
           
           gavl_dictionary_get_int(&s->cmd->header, 
                                   GAVL_CONTROL_DELAY, &delay);
@@ -170,7 +172,6 @@ static void handle_poll_result(shelly_t * s)
   
   }
 
-
 static int update_shellyplug(void * priv)
   {
   int result;
@@ -179,6 +180,8 @@ static int update_shellyplug(void * priv)
   gavl_time_t cur = gavl_time_get_monotonic();
   int old_status = s->status;
   gavl_msg_t * evt;
+
+  //  gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Update shellyplug %d", s->status);
     
   /* Check if running operations got completed */
   
@@ -204,12 +207,16 @@ static int update_shellyplug(void * priv)
         ret++;
         handle_poll_result(s);
         
-        /* Adjust the poll timer to the *end* of the polling. This ensures constant invertvals
+        /* Adjust the poll timer to the *end* of the polling. This ensures constant intervals
          * between the end of one and the start of the next poll operation */
         s->last_poll_time = cur;
         gavl_io_destroy(s->io);
         s->io = NULL;
         //        fprintf(stderr, "Polling done\n");
+        }
+      else if(result < 0) /* Error */
+        {
+        set_offline(s);
         }
       break;
     case STATE_COMMAND:
@@ -226,8 +233,16 @@ static int update_shellyplug(void * priv)
           bg_msg_sink_done_read(s->ctrl.cmd_sink, s->cmd);
           s->cmd = NULL;
           }
+        /* Force polling */
+        s->last_poll_time = GAVL_TIME_UNDEFINED;
+        
         s->status = STATE_IDLE;
         }
+      else if(result < 0)
+        {
+        set_offline(s);
+        }
+      
       break;
     }
 
@@ -239,7 +254,8 @@ static int update_shellyplug(void * priv)
       handle_msg(s);
     }
   
-  if(s->status == STATE_IDLE)
+  if((s->status == STATE_IDLE) ||
+     (s->status == STATE_OFFLINE))
     {
     /* Check for polling */
     if(cur - s->last_poll_time > POLL_INTERVAL)
@@ -250,19 +266,46 @@ static int update_shellyplug(void * priv)
   if((old_status == STATE_OFFLINE) &&
      (s->status == STATE_IDLE))
     {
+    gavl_dictionary_t dict;
+    gavl_dictionary_init(&dict);
+    
     /* Device became online */
     evt = bg_msg_sink_get(s->ctrl.evt_sink);
-    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_ENABLED, GAVL_MSG_NS_CONTROL);
+    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+    gavl_dictionary_set_string(&evt->header, GAVL_MSG_CONTEXT_ID, "switch");
+    gavl_msg_set_arg_dictionary(evt, 0, &dict);
     bg_msg_sink_put(s->ctrl.evt_sink);
+
+    evt = bg_msg_sink_get(s->ctrl.evt_sink);
+    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+    gavl_dictionary_set_string(&evt->header, GAVL_MSG_CONTEXT_ID, "power");
+    gavl_msg_set_arg_dictionary(evt, 0, &dict);
+    bg_msg_sink_put(s->ctrl.evt_sink);
+    
+    gavl_dictionary_free(&dict);
+    
     }
 
   if((old_status != STATE_OFFLINE) &&
      (s->status == STATE_OFFLINE))
     {
+    gavl_dictionary_t dict;
+    gavl_dictionary_init(&dict);
+    
     /* Device became offline */
     evt = bg_msg_sink_get(s->ctrl.evt_sink);
-    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_DISABLED, GAVL_MSG_NS_CONTROL);
+    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+    gavl_dictionary_set_string(&evt->header, GAVL_MSG_CONTEXT_ID, "switch");
+    gavl_msg_set_arg_dictionary(evt, 0, &dict);
     bg_msg_sink_put(s->ctrl.evt_sink);
+
+    evt = bg_msg_sink_get(s->ctrl.evt_sink);
+    gavl_msg_set_id_ns(evt, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+    gavl_dictionary_set_string(&evt->header, GAVL_MSG_CONTEXT_ID, "power");
+    gavl_msg_set_arg_dictionary(evt, 0, &dict);
+    bg_msg_sink_put(s->ctrl.evt_sink);
+    
+    gavl_dictionary_free(&dict);
     }
 
   if((old_status != STATE_IDLE) &&
@@ -303,10 +346,12 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   gavl_value_init(&val1);
   gavl_value_init(&val2);
   
-  gavl_control_add_control(parent,
-                           GAVL_META_CLASS_CONTROL_POWERBUTTON,
-                           "switch",
-                           "Switch");
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_POWERBUTTON,
+                                  "switch",
+                                  "Switch");
+
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_VALUE, 0);
   
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_METER,
@@ -314,15 +359,12 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
                                   "Power");
   gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "W");
   gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
-  
-  gavl_value_set_float(&val1, 0.0);
-  gavl_value_set_float(&val2, 2500.0);
-  gavl_control_set_range(ctrl, &val1, &val2);
-
-  gavl_value_set_float(&val1, 100.0);
-  gavl_value_set_float(&val2, 1000.0);
-  gavl_control_set_low_high(ctrl, &val1, &val2);
-  
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 2500.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 100.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 1000.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
   
   }
 
@@ -340,6 +382,7 @@ static void * create_shellyplug()
 static void destroy_shellyplug(void *priv)
   {
   shelly_t * s = priv;
+  bg_controllable_cleanup(&s->ctrl);
   free(s);
   }
 
@@ -354,7 +397,7 @@ bg_control_plugin_t the_plugin =
   .common =
     {
     BG_LOCALE,
-    .name =      "res_shellyplug",
+    .name =      "ctrl_shellyplug",
     .long_name = TRS("Shelly plug"),
     .description = TRS("Shelly Plug"),
     .type =     BG_PLUGIN_CONTROL,

@@ -1,3 +1,4 @@
 SUBDIRS = \
+controlcenter \
 controlpanel \
 control

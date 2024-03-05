@@ -1110,7 +1110,7 @@ int main(int argc, char ** argv)
 
   bg_handle_sigint();
   signal(SIGPIPE, SIG_IGN);
-  
+
   bg_cmdline_init(&app_data);
 
   if(argc < 2)

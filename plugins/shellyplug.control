@@ -1,4 +1,4 @@
-URL: shellyplug://192.169.2.201
-Label: Drucker
-Path: /buero/drucker
+URI: shellyplug://192.168.2.201
+Label: Printer
+Path: /Office/Printer
 

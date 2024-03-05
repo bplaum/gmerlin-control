@@ -9,8 +9,20 @@ AM_CFLAGS = @GMERLIN_CFLAGS@ $(cdio_cflags) -DLOCALE_DIR=\"$(localedir)\"
 AM_LDFLAGS = -avoid-version -module @GMERLIN_PLUGIN_LDFLAGS@
 
 gmerlin_plugin_LTLIBRARIES = \
-ctrl_shellyplug.la
+ctrl_shellyplug.la \
+ctrl_command.la \
+ctrl_energenie.la \
+ctrl_sysinfo.la
 
 ctrl_shellyplug_la_SOURCES = ctrl_shellyplug.c
 ctrl_shellyplug_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
+
+ctrl_energenie_la_SOURCES = ctrl_energenie.c
+ctrl_energenie_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
+
+ctrl_command_la_SOURCES = ctrl_command.c
+ctrl_command_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
+
+ctrl_sysinfo_la_SOURCES = ctrl_sysinfo.c
+ctrl_sysinfo_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
 
