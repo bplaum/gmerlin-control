@@ -41,11 +41,8 @@ static void opt_addr(void * data, int * argc, char *** _argv, int arg)
     gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Option -addr requires an argument");
     exit(-1);
     }
-
   addr = (*_argv)[arg];
-  
   bg_cmdline_remove_arg(argc, _argv, arg);
-  
   }
 
 static void opt_port(void * data, int * argc, char *** _argv, int arg)

@@ -109,7 +109,7 @@ static int server_handle_manifest(bg_http_connection_t * conn, void * data)
   if(host)
     free(host);
   
-  fprintf(stderr, "Got manifest:\n%s\n", m);
+  //  fprintf(stderr, "Got manifest:\n%s\n", m);
   
   if(m)
     free(m);
@@ -337,9 +337,10 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
                              &var,
                              &val, NULL);
 
-          //          fprintf(stderr, "State changed: %s %s\n", ctx, var);
           
           new_ctx = ctx_to_global(c->cur, ctx);
+
+          // fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
           
           if((control = gavl_control_get_create(&c->controls, new_ctx)) &&
              (control = gavl_control_get_create(control, var)))
@@ -417,9 +418,14 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
   
   gavl_dictionary_init(&dict);
   
-  while(gavl_io_read_line(io, &line, &line_alloc, 1024) &&
-        gavl_http_parse_vars_line(&dict, line))
-    ;
+  while(gavl_io_read_line(io, &line, &line_alloc, 1024))
+    {
+    gavl_strtrim(line);
+    if((*line == '#') || (*line == '\0'))
+      continue;
+    gavl_http_parse_vars_line(&dict, line);
+    }
+  
 #if 0
   fprintf(stderr, "Read control:\n");
   gavl_dictionary_dump(&dict, 2);
@@ -490,8 +496,11 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
 
       ret->ctrl = ret->c->common.get_controllable(ret->h->priv);
       bg_msg_hub_connect_sink(ret->ctrl->evt_hub, c->backend_sink);
-      
-      ret->path = gavl_sprintf("%s/%s", path, id);
+
+      if(!strcmp(path, "/"))
+        ret->path = gavl_sprintf("/%s", id);
+      else
+        ret->path = gavl_sprintf("%s/%s", path, id);
       
       if(gavl_control_num_children(parent) < 2)
         gavl_dictionary_set_string(parent, GAVL_META_CLASS, GAVL_META_CLASS_CONTAINER_INVISIBLE);
