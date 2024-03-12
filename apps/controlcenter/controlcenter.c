@@ -17,9 +17,13 @@ static void init_controls_test(const char * path, gavl_array_t * ret);
 
 /* Directory structure */
 
-// XDG_CONFIG_DIR/gmerlin-control/scripts
 // XDG_CONFIG_DIR/gmerlin-control/controls
 
+/*
+ *  http://example.host:8886/get/path/var
+ *  http://example.host:8886/set/path/var?v=1&delay=10
+ *  http://example.host:8886/setrel/path/var?v=1&delay=10
+ */
 
 /*
  *  ID layout:
@@ -126,7 +130,7 @@ static control_plugin_t * get_plugin(control_center_t * c, const char * ctx)
     // fprintf(stderr, "get_plugin %s %s\n", ctx, c->plugins[i].path);
     len = strlen(c->plugins[i].path);
     if(gavl_string_starts_with(ctx, c->plugins[i].path) &&
-       ((ctx[len] == '\0') || (ctx[len] == '/')))
+       ((ctx[len] == '\0') || (ctx[len] == '/') || (ctx[len] == '?')))
       return &c->plugins[i];
     }
   return NULL;
@@ -569,6 +573,185 @@ static int handle_ctrl(bg_http_connection_t * conn, void * data)
   return ret;
   }
 
+static const gavl_dictionary_t * find_dict_from_conn(const gavl_dictionary_t * controls, const bg_http_connection_t * conn)
+  {
+  char * real_path;
+  char * pos;
+    
+  const gavl_dictionary_t * ret = NULL;
+  if(*conn->path != '/')
+    return NULL;
+
+  real_path = gavl_strdup(conn->path);
+  if((pos = strchr(real_path, '?')))
+    *pos = '\0';
+
+  ret = gavl_control_get(controls, real_path);
+  
+  free(real_path);
+  
+  return ret;
+  }
+
+static int val_from_conn(gavl_value_t * val, const gavl_dictionary_t * control,
+                         const bg_http_connection_t * conn)
+  {
+  const char * v;
+  gavl_value_init(val);
+  val->type = gavl_control_get_type(control);
+
+  if(!(v = gavl_dictionary_get_string(&conn->url_vars, "v")) ||
+     !gavl_value_from_string(val, v))
+    return 0;
+
+  
+  return 1;
+  }
+
+static int handle_set_internal(bg_http_connection_t * conn, void * data, int rel)
+  {
+  gavl_value_t val;
+  control_center_t * c = data;
+  const gavl_dictionary_t * control = find_dict_from_conn(&c->controls, conn);
+
+  if(!control)
+    bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");
+  
+  if(!val_from_conn(&val, control, conn))
+    bg_http_connection_init_res(conn, conn->protocol, 400, "Bad Request");
+  else
+    {
+    control_plugin_t * p;
+
+    
+    if(!(p = get_plugin(c, conn->path)))
+      bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");
+    else
+      {
+      char * ctx = NULL;
+      char * var = NULL;
+      char * pos;
+      gavl_msg_t * cmd;
+
+      int delay = 0;
+      gavl_dictionary_get_int(&conn->url_vars, "delay", &delay);
+      
+      conn->path += strlen(p->path);
+      if(*conn->path != '/')
+        {
+        /* Error */
+        bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");
+        }
+      else
+        {
+        /* /var */
+        if((pos = strrchr(conn->path, '/')) == conn->path)
+          {
+          ctx = gavl_strdup("/");
+          var = gavl_strdup(conn->path + 1);
+          }
+        else
+          {
+          /* /ctx/var */
+          ctx = gavl_strndup(conn->path, pos);
+          var = gavl_strdup(pos+1);
+          }
+        bg_http_connection_init_res(conn, conn->protocol, 200, "OK");
+
+        if((pos = strchr(var, '?')))
+          *pos = '\0';
+        
+        if(rel)
+          {
+          char * tmp_string;
+
+          if(!strcmp(ctx, "/"))
+            tmp_string = gavl_sprintf("%s", p->path);
+          else
+            tmp_string = gavl_sprintf("%s%s", p->path, ctx);
+          
+          if(!gavl_control_handle_set_rel(&c->controls, tmp_string, var, &val))
+            {
+            /* Error */
+            gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Set relative failed for path %s ctx %s var %s", p->path, ctx, var);
+            
+            }
+          }
+        
+        cmd = bg_msg_sink_get(p->ctrl->cmd_sink);
+        gavl_msg_set_state(cmd, BG_CMD_SET_STATE, 1, ctx, var, &val);
+
+        if(delay > 0)
+          {
+          gavl_dictionary_set_int(&cmd->header, GAVL_CONTROL_DELAY, delay);
+          }
+
+        bg_msg_sink_put(p->ctrl->cmd_sink);
+        
+        }
+      if(ctx)
+        free(ctx);
+      if(var)
+        free(var);
+      
+      }
+    
+    }
+
+  bg_http_connection_write_res(conn);
+  return 1;
+
+  }
+
+static int handle_set(bg_http_connection_t * conn, void * data)
+  {
+  return handle_set_internal(conn, data, 0);
+  }
+
+static int handle_setrel(bg_http_connection_t * conn, void * data)
+  {
+  return handle_set_internal(conn, data, 1);
+  }
+
+static int handle_get(bg_http_connection_t * conn, void * data)
+  {
+  control_center_t * c = data;
+  const gavl_value_t * val;
+  const gavl_dictionary_t * control = find_dict_from_conn(&c->controls, conn);
+  char * body = NULL;
+  int body_len = 0;
+  
+  if(!control)
+    {
+    bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");
+    }
+  else if(!(val = gavl_dictionary_get(control, GAVL_CONTROL_VALUE)))
+    {
+    bg_http_connection_init_res(conn, conn->protocol, 400, "Bad Request");
+
+    fprintf(stderr, "No value:\n");
+    gavl_dictionary_dump(control, 2);
+
+    }
+  else if(!(body = gavl_value_to_string(val)))
+    {
+    bg_http_connection_init_res(conn, conn->protocol, 400, "Bad Request");
+    }
+  else
+    {
+    body_len = strlen(body);
+    bg_http_connection_init_res(conn, conn->protocol, 200, "OK");
+    gavl_dictionary_set_string(&conn->res, "Content-Type", "text/plain");
+    gavl_dictionary_set_int(&conn->res, "Content-Length", body_len);
+    }
+  
+  bg_http_connection_write_res(conn);
+  if(body && (gavl_socket_write_data(conn->fd, body, body_len) != body_len))
+    bg_http_connection_clear_keepalive(conn);
+  
+  return 1;
+  }
+
 int controlcenter_init(control_center_t * c)
   {
   memset(c, 0, sizeof(*c));
@@ -581,6 +764,11 @@ int controlcenter_init(control_center_t * c)
   bg_http_server_set_root_file(c->srv, "/static2/controlcenter.html");
 
   bg_http_server_add_handler(c->srv, handle_ctrl, BG_HTTP_PROTO_HTTP, "/ctrl", c);
+
+  /* Simple handlers for remote scripts (callable also via curl or wget) */
+  bg_http_server_add_handler(c->srv, handle_setrel, BG_HTTP_PROTO_HTTP, "/setrel", c);
+  bg_http_server_add_handler(c->srv, handle_set, BG_HTTP_PROTO_HTTP, "/set", c);
+  bg_http_server_add_handler(c->srv, handle_get, BG_HTTP_PROTO_HTTP, "/get", c);
   
   bg_http_server_set_static_path(c->srv, "/static");
   bg_http_server_add_static_path(c->srv, "/static2", DATA_DIR "/web");

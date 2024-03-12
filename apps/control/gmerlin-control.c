@@ -33,7 +33,6 @@
 
 static char * addr = NULL;
 static int delay = 0;
-
 static int flags = 0;
 
 #define FLAG_MONITOR       (1<<0)
@@ -41,6 +40,7 @@ static int flags = 0;
 #define FLAG_DUMP_CONTROLS (1<<2)
 #define FLAG_HAVE_STATE    (1<<3)
 #define FLAG_COMMANDS_SENT (1<<4)
+#define FLAG_REMOTE        (1<<5) // Talking to a remote controlcenter
 
 bg_control_t ctrl;
 
@@ -71,12 +71,52 @@ static char * extract_var_val(const char * arg, gavl_value_t * val)
   return var;
   }
 
+static void set_remote(const char * arg, const char * cmd)
+  {
+  char * ctx;
+  char * val;
+  gavl_buffer_t buf;
+    
+  // gmerlin-control -addr example.host:8886 -set /path/var=1 -delay 10
+  // -> http://example.host:8886/set/path/var?v=1&delay=10
+    
+  char * uri;
+    
+  ctx = gavl_strdup(arg);
+
+  if(!(val = strchr(ctx, '=')))
+    {
+    /* Error */
+    }
+
+  *val = '\0';
+  val++;
+    
+  uri = gavl_sprintf("http%s/%s%s?v=%s", strstr(addr, "://"), cmd, ctx, val);
+
+  if(delay > 0)
+    {
+    char * tmp_string = gavl_sprintf("&delay=%d", delay);
+    uri = gavl_strcat(uri, tmp_string);
+    free(tmp_string);
+    }
+
+  gavl_buffer_init(&buf);
+    
+  if(!bg_http_get(uri, &buf, NULL))
+    {
+    /* Error */
+    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "bg_http_get failed for %s", uri);
+    
+    }
+
+  gavl_buffer_free(&buf);
+  free(uri);
+  
+  }
+
 static void cmd_set(void * data, int * argc, char *** argv, int arg)
   {
-  char * var;
-  gavl_value_t val;
-  gavl_msg_t * msg;
-  gavl_value_init(&val);
   
   if(arg >= *argc)
     {
@@ -84,58 +124,77 @@ static void cmd_set(void * data, int * argc, char *** argv, int arg)
     exit(-1);
     }
 
-  if(!(var = extract_var_val((*argv)[arg], &val)))
+  if(flags & FLAG_REMOTE)
     {
-    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Invalid argument: %s", (*argv)[arg]);
-    exit(-1);
+    set_remote((*argv)[arg], "set");
     }
-  msg = bg_msg_sink_get(ctrl.cmd_sink);
+  else
+    {
+    char * var;
+    gavl_value_t val;
+    gavl_msg_t * msg;
+    gavl_value_init(&val);
+    
+    if(!(var = extract_var_val((*argv)[arg], &val)))
+      {
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Invalid argument: %s", (*argv)[arg]);
+      exit(-1);
+      }
+    msg = bg_msg_sink_get(ctrl.cmd_sink);
 
-  gavl_msg_set_state(msg, GAVL_CMD_SET_STATE,
-                     1, "/", var, &val);
+    gavl_msg_set_state(msg, GAVL_CMD_SET_STATE,
+                       1, "/", var, &val);
   
-  if(delay > 0)
-    gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
+    if(delay > 0)
+      gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
   
-  bg_msg_sink_put(ctrl.cmd_sink);
+    bg_msg_sink_put(ctrl.cmd_sink);
+    flags &= ~FLAG_IDLE;
+    gavl_value_free(&val);
+    }
   
   bg_cmdline_remove_arg(argc, argv, arg);
-  gavl_value_free(&val);
-  flags &= ~FLAG_IDLE;
   }
 
 static void cmd_setrel(void * data, int * argc, char *** argv, int arg)
   {
-  char * var;
-  gavl_value_t val;
-  
-  gavl_value_init(&val);
-
   if(arg >= *argc)
     {
     gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Option -set-rel requires an argument");
     exit(-1);
     }
-
-  if(!(var = extract_var_val((*argv)[arg], &val)))
-    exit(-1);
-
-  if(gavl_control_handle_set_rel(&controls, "/", var, &val))
-    {
-    gavl_msg_t * msg;
-    msg = bg_msg_sink_get(ctrl.cmd_sink);
-    gavl_msg_set_state(msg, GAVL_CMD_SET_STATE,
-                       1, "/", var, &val);
-
-    if(delay > 0)
-      gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
   
-    bg_msg_sink_put(ctrl.cmd_sink);
+  if(flags & FLAG_REMOTE)
+    {
+    set_remote((*argv)[arg], "setrel");
+    }
+  else
+    {
+    char * var;
+    gavl_value_t val;
+  
+    gavl_value_init(&val);
+    
+    if(!(var = extract_var_val((*argv)[arg], &val)))
+      exit(-1);
+    
+    if(gavl_control_handle_set_rel(&controls, "/", var, &val))
+      {
+      gavl_msg_t * msg;
+      msg = bg_msg_sink_get(ctrl.cmd_sink);
+      gavl_msg_set_state(msg, GAVL_CMD_SET_STATE,
+                         1, "/", var, &val);
+
+      if(delay > 0)
+        gavl_dictionary_set_int(&msg->header, GAVL_CONTROL_DELAY, delay);
+  
+      bg_msg_sink_put(ctrl.cmd_sink);
+      }
+    flags &= ~FLAG_IDLE;
+    gavl_value_free(&val);
     }
   
   bg_cmdline_remove_arg(argc, argv, arg);
-  gavl_value_free(&val);
-  flags &= ~FLAG_IDLE;
   }
 
 static void cmd_get(void * data, int * argc, char *** argv, int arg)
@@ -149,19 +208,54 @@ static void cmd_get(void * data, int * argc, char *** argv, int arg)
     exit(-1);
     }
 
-  if(!(control = gavl_control_get(&controls, "/")) ||
-     !(control = gavl_control_get(&controls, (*argv)[arg])) ||
-     !(val = gavl_dictionary_get(control, GAVL_CONTROL_VALUE)))
+  if(flags & FLAG_REMOTE)
     {
-    if(!control)
-      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "No such control %s", (*argv)[arg]);
-    exit(-1);
+    /* TODO */
+    char * ctx;
+    gavl_buffer_t buf;
+    
+    // gmerlin-control -addr example.host:8886 -set /path/var=1 -delay 10
+    // -> http://example.host:8886/set/path/var?v=1&delay=10
+    
+    char * uri;
+
+    gavl_buffer_init(&buf);
+    
+    ctx = gavl_strdup((*argv)[arg]);
+    
+    uri = gavl_sprintf("http%s/get%s", strstr(addr, "://"), ctx);
+    
+    
+    if(!bg_http_get(uri, &buf, NULL))
+      {
+      /* Error */
+      goto fail;
+      }
+
+    printf("%s\n", (const char*)buf.buf);
+    
+    fail:
+    
+    gavl_buffer_free(&buf);
+    free(uri);
+    
+    }
+  else
+    {
+    if(!(control = gavl_control_get(&controls, "/")) ||
+       !(control = gavl_control_get(&controls, (*argv)[arg])) ||
+       !(val = gavl_dictionary_get(control, GAVL_CONTROL_VALUE)))
+      {
+      if(!control)
+        gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "No such control %s", (*argv)[arg]);
+      exit(-1);
+      }
+    gavl_value_dump(val, 0);
+    gavl_dprintf("\n");
     }
   
   bg_cmdline_remove_arg(argc, argv, arg);
-  
-  gavl_value_dump(val, 0);
-  gavl_dprintf("\n");
+
   }
 
 bg_cmdline_arg_t commands[] =
@@ -364,78 +458,94 @@ int main(int argc, char ** argv)
   
   /* Create handle */
 
-  gavl_url_split(addr, &protocol, NULL, NULL, NULL, NULL, NULL);
+  if(gavl_string_starts_with(addr, "remote://"))
+    {
+    flags |= FLAG_REMOTE;
+    }
+  else
+    {
+    gavl_url_split(addr, &protocol, NULL, NULL, NULL, NULL, NULL);
   
-  if(!(info = bg_plugin_find_by_protocol(protocol, BG_PLUGIN_CONTROL)))
-    {
-    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Plugin for protocol %s not found", protocol);
-    return EXIT_FAILURE;
-    }
-  if(!(h = bg_plugin_load(info)))
-    {
-    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Couldn't load plugin %s", info->name);
-    return EXIT_FAILURE;
-    }
-  
-  c = (bg_control_plugin_t *)h->plugin;
-
-  if((h->plugin->get_controllable) &&
-     (controllable = h->plugin->get_controllable(h->priv)))
-    {
-    bg_control_init(&ctrl, bg_msg_sink_create(handle_msg, NULL, 1));
-    bg_controllable_connect(controllable, &ctrl);
-    }
-
-  if(c->open && !c->open(h->priv, addr))
-    return EXIT_FAILURE;
-
-  if(c->get_controls)
-    {
-    c->get_controls(h->priv, &controls);
-
-    if(flags & FLAG_DUMP_CONTROLS)
+    if(!(info = bg_plugin_find_by_protocol(protocol, BG_PLUGIN_CONTROL)))
       {
-      gavl_dprintf("Got contols\n");
-      gavl_dictionary_dump(&controls, 2);
-      gavl_dprintf("\n");
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Plugin for protocol %s not found", protocol);
+      return EXIT_FAILURE;
       }
+    if(!(h = bg_plugin_load(info)))
+      {
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Couldn't load plugin %s", info->name);
+      return EXIT_FAILURE;
+      }
+  
+    c = (bg_control_plugin_t *)h->plugin;
+
+    if((h->plugin->get_controllable) &&
+       (controllable = h->plugin->get_controllable(h->priv)))
+      {
+      bg_control_init(&ctrl, bg_msg_sink_create(handle_msg, NULL, 1));
+      bg_controllable_connect(controllable, &ctrl);
+      }
+
+    if(c->open && !c->open(h->priv, addr))
+      return EXIT_FAILURE;
+
+    if(c->get_controls)
+      {
+      c->get_controls(h->priv, &controls);
+
+      if(flags & FLAG_DUMP_CONTROLS)
+        {
+        gavl_dprintf("Got contols\n");
+        gavl_dictionary_dump(&controls, 2);
+        gavl_dprintf("\n");
+        }
     
+      }
+
     }
   
   /* run commands */
-  
-  
-  while(1)
+
+  if(flags & FLAG_REMOTE)
     {
-    if(bg_got_sigint())
-      break;
-    
-    ret = 0;
-    
-    //      ret += bg_backend_handle_ping(backend);
-
-    if(c->update)
-      ret += c->update(h->priv);
-    
-    bg_msg_sink_iteration(ctrl.evt_sink);
-    ret += bg_msg_sink_get_num(ctrl.evt_sink);
-
-    if((flags & FLAG_HAVE_STATE) && !(flags & FLAG_COMMANDS_SENT))
+    bg_cmdline_parse(commands, &argc, &argv, NULL);
+    }
+  else
+    {
+    while(1)
       {
-      gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Got state");
-      bg_cmdline_parse(commands, &argc, &argv, NULL);
-      flags |= FLAG_COMMANDS_SENT;
-      }
+      if(bg_got_sigint())
+        break;
     
-    if((flags & FLAG_IDLE) && !(flags & FLAG_MONITOR))
-      break;
+      ret = 0;
+    
+      //      ret += bg_backend_handle_ping(backend);
+
+      if(c->update)
+        ret += c->update(h->priv);
+    
+      bg_msg_sink_iteration(ctrl.evt_sink);
+      ret += bg_msg_sink_get_num(ctrl.evt_sink);
+
+      if((flags & FLAG_HAVE_STATE) && !(flags & FLAG_COMMANDS_SENT))
+        {
+        gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Got state");
+        bg_cmdline_parse(commands, &argc, &argv, NULL);
+        flags |= FLAG_COMMANDS_SENT;
+        }
+    
+      if((flags & FLAG_IDLE) && !(flags & FLAG_MONITOR))
+        break;
 
         
-    //      ret += 
+      //      ret += 
     
-    if(!ret)
-      gavl_time_delay(&delay_time);
+      if(!ret)
+        gavl_time_delay(&delay_time);
+      }
+    
     }
+  
   
   //  fail:
   

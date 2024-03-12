@@ -3,9 +3,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <config.h>
 #include <control.h>
 #include <gavl/metatags.h>
 #include <gavl/utils.h>
+#include <gavl/log.h>
+#define LOG_DOMAIN "control"
 
 void gavl_control_create_root(gavl_dictionary_t * dict)
   {
@@ -137,7 +140,7 @@ const gavl_dictionary_t * gavl_control_get(const gavl_dictionary_t * dict, const
   {
   char ** el;
   int idx;
-  
+  const gavl_dictionary_t * dict_orig = dict;
   if(!strcmp(path, "/"))
     return dict;
 
@@ -153,6 +156,8 @@ const gavl_dictionary_t * gavl_control_get(const gavl_dictionary_t * dict, const
       {
       if(!(dict = gavl_control_get_child(dict, el[idx])))
         {
+        gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "No such child %s path: %s", el[idx], path);
+        gavl_dictionary_dump(dict_orig, 2);
         gavl_strbreak_free(el);
         return NULL;
         }
