@@ -113,8 +113,6 @@ static int server_handle_manifest(bg_http_connection_t * conn, void * data)
   if(host)
     free(host);
   
-  //  fprintf(stderr, "Got manifest:\n%s\n", m);
-  
   if(m)
     free(m);
   
@@ -511,7 +509,11 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
       
       }
     }
-
+  else
+    {
+    gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Don't know how to load %s", uri);
+    }
+  
   end:
   
   gavl_dictionary_free(&dict);
@@ -542,7 +544,7 @@ static void load_controls(control_center_t * c)
     {
     load_control(c, &idx, gl.gl_pathv[i]);
     }
-#if 0
+#if 1
   fprintf(stderr, "Got controls:\n");
   gavl_dictionary_dump(&c->controls, 2);
   fprintf(stderr, "\n");
@@ -674,7 +676,6 @@ static int handle_set_internal(bg_http_connection_t * conn, void * data, int rel
             {
             /* Error */
             gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Set relative failed for path %s ctx %s var %s", p->path, ctx, var);
-            
             }
           }
         
