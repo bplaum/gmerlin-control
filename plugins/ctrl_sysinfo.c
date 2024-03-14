@@ -103,7 +103,7 @@ static double get_memory_usage(void)
   {
   char * line = NULL;
   int alloc = 0;
-
+  double ret = 0.0;
   int64_t total = 0;
   int64_t available = 0;
   
@@ -116,11 +116,7 @@ static double get_memory_usage(void)
   while(1)
     {
     if(!gavl_io_read_line(io, &line, &alloc, 0))
-      {
-      if(line)
-        free(line);
-      return 0.0;
-      }
+      break;
     if(gavl_string_starts_with(line, "MemTotal:"))
       {
       pos = strchr(line, ':');
@@ -134,7 +130,10 @@ static double get_memory_usage(void)
       available = strtoll(pos, NULL, 10);
       }
     if((total > 0) && (available > 0))
+      {
+      ret = 100.0 * (double)(total - available) / (double)total;
       break;
+      }
     }
 
   if(line)
@@ -142,7 +141,7 @@ static double get_memory_usage(void)
   if(io)
     gavl_io_destroy(io);
   
-  return 100.0 * (double)(total - available) / (double)total;
+  return ret;
   }
 
 static int read_hwmon(const char * filename, char ** line, int * line_alloc)

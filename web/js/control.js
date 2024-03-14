@@ -204,7 +204,48 @@ function create_meter(ret)
 
 function create_pulldown(ret)
   {
-  
+  let td;
+  let button;
+  let table = append_dom_element(ret.parent, "table");
+  table.style = "width: 100%;"  
+  table.el = ret;
+  console.log("Create pulldown");
+  let tr = append_dom_element(table, "tr");
+
+  td = append_dom_element(tr, "td");
+  td.style = "width: 30%;"  
+  append_dom_text(td, dict_get_string(ret.dict, GAVL_META_LABEL));
+
+  td = append_dom_element(tr, "td");
+  td.style = "width: 69%;"  
+  table = append_dom_element(td, "table");
+  table.style = "width: 100%;"  
+  tr = append_dom_element(table, "tr");
+  ret.label = append_dom_element(tr, "td");
+
+  td = append_dom_element(tr, "td");
+  td.style = "text-align: right;"
+  button = append_dom_element(td, "button");
+  button.setAttribute("class", "icon-chevron-down");
+
+  ret.set_value = function(val)
+    {
+    let i;
+
+    let options = dict_get_array(this.dict, GAVL_CONTROL_OPTIONS);
+    clear_element(this.label);
+    console.log("set_value: " + val);
+    for(i = 0; i < options.length; i++)
+      {
+      if(dict_get_string(options[i].v, GAVL_META_ID) == val)
+        {
+        append_dom_text(this.label, dict_get_string(options[i].v, GAVL_META_LABEL));
+        break;
+	}
+      }
+      
+    }
+ 
   }
 
 function create_volume(ret)

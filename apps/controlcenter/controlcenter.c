@@ -9,7 +9,7 @@
 #include <gavl/log.h>
 #define LOG_DOMAIN "controlcenter"
 
-// #define test_controls
+#define TEST_CONTROLS
 
 #ifdef TEST_CONTROLS
 static void init_controls_test(const char * path, gavl_array_t * ret);
@@ -414,11 +414,11 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
   const char * id;
   const bg_plugin_info_t * info;
   control_plugin_t * ret = &c->plugins[*plugin_idx];
+
+  gavl_dictionary_init(&dict);
   
   if(!(io = gavl_io_from_filename(filename, 0)))
     return 0;
-  
-  gavl_dictionary_init(&dict);
   
   while(gavl_io_read_line(io, &line, &line_alloc, 1024))
     {
@@ -427,6 +427,7 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
       continue;
     gavl_http_parse_vars_line(&dict, line);
     }
+  gavl_io_destroy(io);
   
 #if 0
   fprintf(stderr, "Read control:\n");
@@ -884,6 +885,21 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     
     gavl_array_splice_val_nocopy(arr, -1, 0, &val);
     gavl_value_reset(&val);
+
+    /* Menu */
+    gavl_value_init(&val);
+    dict = gavl_value_set_dictionary(&val);
+    gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_PULLDOWN);
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "/pulldown");
+    gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Pulldown");
+
+    gavl_control_add_option(dict, "option1", "Option 1");
+    gavl_control_add_option(dict, "option2", "Option 2");
+    gavl_dictionary_set_string(dict, GAVL_CONTROL_VALUE, "option2");
+    
+    gavl_array_splice_val_nocopy(arr, -1, 0, &val);
+    gavl_value_reset(&val);
+
     
     }
   

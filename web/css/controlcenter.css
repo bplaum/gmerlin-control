@@ -74,7 +74,8 @@ div[data-klass="control.power"][data-value="0"] button
   }
 
 div[data-klass="container"] button,
-div[data-klass="control.link"] button
+div[data-klass="control.link"] button,
+div[data-klass="control.pulldown"] button
   {
       border-style: none;
 /*      border: none; */
@@ -86,7 +87,8 @@ div[data-klass="control.link"] button
   }
 
 div[data-klass="container"] button:active,
-div[data-klass="control.link"] button:active
+div[data-klass="control.link"] button:active,
+div[data-klass="control.pulldown"] button:active
   {
       border-style: solid;
       background-color: #404040;
@@ -94,7 +96,8 @@ div[data-klass="control.link"] button:active
   }
 
 div[data-klass="container"],
-div[data-klass="control.link"]
+div[data-klass="control.link"],
+div[data-klass="control.pulldown"] table table
   {
   border-width: 2pt;
   border-style: solid;
@@ -104,6 +107,7 @@ div[data-klass="control.link"]
 
 div[data-klass="container"] .icon-folder,
 div[data-klass="control.link"] .icon-globe
+div[data-klass="control.pulldown"] .icon-chevron-down
   {
   width:  1.4em;
   height: 1.4em;

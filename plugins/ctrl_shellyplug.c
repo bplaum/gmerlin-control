@@ -39,18 +39,24 @@ typedef struct
 
   } shelly_t;
 
-static void set_offline(shelly_t * s)
+static void reset_connection(shelly_t * s)
   {
   if(s->io)
     {
     gavl_io_destroy(s->io);
     s->io = NULL;
     }
+  }
+
+static void set_offline(shelly_t * s)
+  {
+  reset_connection(s);
   s->status = STATE_OFFLINE;
   s->last_poll_time = gavl_time_get_monotonic();
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s seems to be offline", s->addr);
   }
 
+  
 static int handle_msg(shelly_t * s)
   {
   switch(s->cmd->NS)
@@ -210,8 +216,8 @@ static int update_shellyplug(void * priv)
         /* Adjust the poll timer to the *end* of the polling. This ensures constant intervals
          * between the end of one and the start of the next poll operation */
         s->last_poll_time = cur;
-        gavl_io_destroy(s->io);
-        s->io = NULL;
+        
+        reset_connection(s);
         //        fprintf(stderr, "Polling done\n");
         }
       else if(result < 0) /* Error */
@@ -224,9 +230,7 @@ static int update_shellyplug(void * priv)
       if(result > 0)
         {
         ret++;
-
-        gavl_io_destroy(s->io);
-        s->io = NULL;
+        reset_connection(s);
         
         if(s->cmd)
           {
