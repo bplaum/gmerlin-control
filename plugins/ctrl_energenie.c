@@ -366,11 +366,13 @@ static const char * next_label(const char * pos, char ** ret)
     pos++;
     end = strchr(pos, '"');
     *ret = gavl_strndup(pos, end);
+    return end+1;
     }
   else
+    {
     *ret = NULL;
-  
-  return end+1;
+    return NULL;
+    }
   }
 
 static void update_label(energenie_t * e, const char * id, char * label)
