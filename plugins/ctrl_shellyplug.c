@@ -94,6 +94,11 @@ static int handle_msg(shelly_t * s)
               uri = gavl_sprintf("%s/relay/0?turn=%s", s->addr, (val.v.i ? "on" : "off"));
 
             //            fprintf(stderr, "URI: %s\n", uri);
+
+            if(s->io)
+              {
+              fprintf(stderr, "** Set state: I/O already exists %d\n", s->status);
+              }
             
             s->io = gavl_http_client_create();
             gavl_buffer_reset(&s->json_buffer);
@@ -117,6 +122,12 @@ static void start_poll(shelly_t * s, gavl_time_t cur)
   {
   char * uri;
   /* Start polling */
+  if(s->io)
+    {
+    fprintf(stderr, "** start_poll: I/O already exists %d\n", s->status);
+    }
+
+
   s->io = gavl_http_client_create();
   gavl_buffer_reset(&s->json_buffer);
   gavl_http_client_set_response_body(s->io, &s->json_buffer);
