@@ -88,7 +88,6 @@ div[data-klass="control.pulldown"] button
 
 div[data-klass="container"] button:active,
 div[data-klass="control.link"] button:active,
-div[data-klass="control.pulldown"] button:active
   {
       border-style: solid;
       background-color: #404040;
@@ -97,11 +96,18 @@ div[data-klass="control.pulldown"] button:active
 
 div[data-klass="container"],
 div[data-klass="control.link"],
-div[data-klass="control.pulldown"] table table
+div[data-klass="control.pulldown"] table table,
+.pulldown-menu
   {
   border-width: 2pt;
   border-style: solid;
   background: #e0e0e0;
+  }
+
+div[data-klass="control.pulldown"] table table:hover,
+.menu-item[data-active="true"]
+  {
+  background: #707070;
   }
 
 
@@ -113,4 +119,23 @@ div[data-klass="control.pulldown"] .icon-chevron-down
   height: 1.4em;
   font-size: 150%;
   }
+
+.pulldown-menu
+  {
+  position: absolute;
+  min-width: 30%;
+  z-index: 100;
+  
+  }
+
+.pulldown-menu[data-active="false"]
+  {
+  display: none;
+  }
+
+.pulldown-menu[data-active="true"]
+  {
+  display: block;
+  }
+
 

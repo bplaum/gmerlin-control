@@ -244,8 +244,8 @@ static int handle_websocket_message(void * data, gavl_msg_t * msg)
                              &ctx,
                              &var,
                              &val, NULL);
-          
-          if((p = get_plugin(c, ctx)))
+
+          if(ctx && (p = get_plugin(c, ctx)))
             {
             ctx += strlen(p->path);
             if(*ctx == '\0')
@@ -328,7 +328,6 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
           const char * ctx;
           const char * var;
           int last = 0;
-          gavl_msg_t * forward;
           char * new_ctx;
           gavl_dictionary_t * control;
           /* Store state locally */
@@ -342,16 +341,23 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
           
           new_ctx = ctx_to_global(c->cur, ctx);
 
-          // fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
+          //          fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
           
           if((control = gavl_control_get_create(&c->controls, new_ctx)) &&
              (control = gavl_control_get_create(control, var)))
-            gavl_dictionary_set(control, GAVL_CONTROL_VALUE, &val);
-          
-          forward = bg_msg_sink_get(c->ctrl.evt_sink);
-          gavl_msg_set_state(forward, BG_MSG_STATE_CHANGED, last, new_ctx, var, &val);
-          bg_msg_sink_put(c->ctrl.evt_sink);
-          free(new_ctx);
+            {
+            const gavl_value_t * val_old = gavl_dictionary_get(control, GAVL_CONTROL_VALUE);
+
+            if(gavl_value_compare(&val, val_old))
+              {
+              gavl_msg_t * forward;
+              forward = bg_msg_sink_get(c->ctrl.evt_sink);
+              gavl_msg_set_state(forward, BG_MSG_STATE_CHANGED, last, new_ctx, var, &val);
+              bg_msg_sink_put(c->ctrl.evt_sink);
+              free(new_ctx);
+              gavl_dictionary_set(control, GAVL_CONTROL_VALUE, &val);
+              }
+            }
           gavl_value_free(&val);
           }
           break;
@@ -390,10 +396,6 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
             fprintf(stderr, ":(\n");
             
           }
-          break;
-        case GAVL_MSG_CONTROL_OPTION_ADDED:
-          break;
-        case GAVL_MSG_CONTROL_OPTION_REMOVED:
           break;
         }
       break;
@@ -545,7 +547,7 @@ static void load_controls(control_center_t * c)
     {
     load_control(c, &idx, gl.gl_pathv[i]);
     }
-#if 1
+#if 0
   fprintf(stderr, "Got controls:\n");
   gavl_dictionary_dump(&c->controls, 2);
   fprintf(stderr, "\n");
@@ -847,7 +849,7 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_value_init(&val);
     dict = gavl_value_set_dictionary(&val);
     gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_SLIDER);
-    gavl_dictionary_set_string(dict, GAVL_META_ID,    "/slider");
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "slider");
     gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Slider");
     gavl_dictionary_set_int(dict, GAVL_CONTROL_MIN, 0);
     gavl_dictionary_set_int(dict, GAVL_CONTROL_MAX, 100);
@@ -862,7 +864,7 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_value_init(&val);
     dict = gavl_value_set_dictionary(&val);
     gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_POWERBUTTON);
-    gavl_dictionary_set_string(dict, GAVL_META_ID,    "/power");
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "power");
     gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Power button");
     gavl_dictionary_set_int(dict, GAVL_CONTROL_VALUE, 1);
     gavl_array_splice_val_nocopy(arr, -1, 0, &val);
@@ -872,7 +874,7 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_value_init(&val);
     dict = gavl_value_set_dictionary(&val);
     gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_METER);
-    gavl_dictionary_set_string(dict, GAVL_META_ID,    "/meter");
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "meter");
     gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Meter");
     gavl_dictionary_set_int(dict, GAVL_CONTROL_MIN, 0);
     gavl_dictionary_set_int(dict, GAVL_CONTROL_MAX, 100);
@@ -890,7 +892,7 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_value_init(&val);
     dict = gavl_value_set_dictionary(&val);
     gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_PULLDOWN);
-    gavl_dictionary_set_string(dict, GAVL_META_ID,    "/pulldown");
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "pulldown");
     gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Pulldown");
 
     gavl_control_add_option(dict, "option1", "Option 1");

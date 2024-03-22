@@ -77,13 +77,15 @@ function create_connection()
             {
             let ctrl;
             let ctx = msg.args[1].v;
-            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
-			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
+//            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
+//			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
 
               if((ctrl = document.getElementById(msg.args[1].v + "/" + msg.args[2].v)) &&
 		 (ctrl = ctrl.el))
 		ctrl.set_value(msg.args[3].v);
-	      
+	      else
+		console.log("Cannot find control");
+		
             if(window.browser.path != msg.args[1].v)
 	      return;
 
@@ -96,7 +98,7 @@ function create_connection()
         switch(msg.id)
           {
           case GAVL_RESP_CONTROL_BROWSE:
-	    console.log("Got browse response " + JSON.stringify(msg.args[0].v));
+//	    console.log("Got browse response " + JSON.stringify(msg.args[0].v));
 	    window.browser.path = dict_get_string(msg.header, GAVL_MSG_CONTEXT_ID);
             window.browser.set_children(msg.args[0].v);
 	    break;

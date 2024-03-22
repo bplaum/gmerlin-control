@@ -412,10 +412,6 @@ static int handle_msg(void * priv, gavl_msg_t * msg)
         {
         case GAVL_MSG_CONTROL_CHANGED:
           break; 
-        case GAVL_MSG_CONTROL_OPTION_ADDED:
-          break; 
-        case GAVL_MSG_CONTROL_OPTION_REMOVED:
-          break; 
         case GAVL_MSG_CONTROL_IDLE:
           flags |= FLAG_IDLE;
           break; 

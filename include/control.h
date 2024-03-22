@@ -75,21 +75,6 @@
 
 /*
  *  ContextID: path
- *  arg0: id
- *  arg1: dictionary
- */
-
-#define GAVL_MSG_CONTROL_OPTION_ADDED    202
-
-/*
- *  ContextID: path
- *  arg0: id
- */
-
-#define GAVL_MSG_CONTROL_OPTION_REMOVED  203
-
-/*
- *  ContextID: path
  *  arg0: dictionary with changed values
  */
 
@@ -126,6 +111,10 @@ void gavl_control_set_type(gavl_dictionary_t * ctrl, gavl_type_t type);
 gavl_type_t gavl_control_get_type(const gavl_dictionary_t * ctrl);
 
 gavl_dictionary_t * gavl_control_add_option(gavl_dictionary_t * ctrl, const char * id, const char * label);
+gavl_dictionary_t * gavl_control_get_option(gavl_dictionary_t * ctrl, const char * tag, const char * val);
+
+void gavl_control_delete_option(gavl_dictionary_t * ctrl, const char * id);
+
 
 const gavl_dictionary_t * gavl_control_get(const gavl_dictionary_t * root, const char * path);
 gavl_dictionary_t * gavl_control_get_create(gavl_dictionary_t * dict, const char * path);

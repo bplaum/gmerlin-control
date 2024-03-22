@@ -36,7 +36,7 @@ typedef struct
   gavl_dictionary_t state;
 
   gavl_msg_t * cmd;
-
+  
   } shelly_t;
 
 static void reset_connection(shelly_t * s)
@@ -126,8 +126,7 @@ static void start_poll(shelly_t * s, gavl_time_t cur)
     {
     fprintf(stderr, "** start_poll: I/O already exists %d\n", s->status);
     }
-
-
+  
   s->io = gavl_http_client_create();
   gavl_buffer_reset(&s->json_buffer);
   gavl_http_client_set_response_body(s->io, &s->json_buffer);

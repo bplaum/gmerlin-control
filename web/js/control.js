@@ -127,10 +127,9 @@ function create_powerbutton(ret)
   let table = append_dom_element(ret.parent, "table");
   table.style = "width: 100%;"  
   let tr = append_dom_element(table, "tr");
-  let td = append_dom_element(table, "td");
-  append_dom_text(td, dict_get_string(ret.dict, GAVL_META_LABEL));
+  ret.label = append_dom_element(table, "td");
 
-  td = append_dom_element(table, "td");
+  let td = append_dom_element(table, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
   ret.button.setAttribute("class", "icon-power");
@@ -148,11 +147,21 @@ function create_powerbutton(ret)
       // this.el.cb.handle_msg(msg);
     }
 
+  ret.update = function(dict)
+    {
+    let label = dict_get_string(dict, GAVL_META_LABEL);
+    if(label)
+      {
+      clear_element(this.label);
+      append_dom_text(this.label, label);
+      }
+    }
+  
   ret.set_value = function(val)
     {
     this.parent.dataset.value = val;
     }
-   
+
   }
 
 function create_meter(ret)
@@ -209,43 +218,169 @@ function create_pulldown(ret)
   let table = append_dom_element(ret.parent, "table");
   table.style = "width: 100%;"  
   table.el = ret;
+  table.setAttribute("id", ret.path);
+
   console.log("Create pulldown");
   let tr = append_dom_element(table, "tr");
 
-  td = append_dom_element(tr, "td");
-  td.style = "width: 30%;"  
-  append_dom_text(td, dict_get_string(ret.dict, GAVL_META_LABEL));
+  ret.label = append_dom_element(tr, "td");
+  ret.label.style = "width: 30%;"  
 
+  ret.menu = append_dom_element(document.body, "div");
+  ret.menu.setAttribute("class", "pulldown-menu");
+  ret.menu.dataset.active = false;
+    
   td = append_dom_element(tr, "td");
   td.style = "width: 69%;"  
+
+    
   table = append_dom_element(td, "table");
+  ret.button = table;
   table.style = "width: 100%;"  
+  table.el = ret;
+      
   tr = append_dom_element(table, "tr");
-  ret.label = append_dom_element(tr, "td");
+  ret.value_label = append_dom_element(tr, "td");
 
   td = append_dom_element(tr, "td");
   td.style = "text-align: right;"
-  button = append_dom_element(td, "button");
-  button.setAttribute("class", "icon-chevron-down");
+  td.setAttribute("class", "icon-chevron-down");
 
+  ret.show_menu = function()
+    {
+    let parent_rect;
+    let menu_rect;
+    this.menu.dataset.active = "true";
+    console.log("Show menu");
+    /* Rectangle relative to the *viewport* */
+    parent_rect = this.button.getBoundingClientRect();
+    this.menu.style.top = "";
+    this.menu.style.bottom = "";
+
+    console.log("parent_rect: " + JSON.stringify(parent_rect));
+      
+    /* Vertical pos */
+    if(parent_rect.top < window.innerHeight - parent_rect.bottom)
+      this.menu.style.top = parseInt(parent_rect.bottom) + "px";
+    else
+      this.menu.style.bottom = parseInt(window.innerHeight - parent_rect.top - window.pageYOffset) + "px";
+	
+    /* Horizontal pos */
+    if(parent_rect.left < window.innerWidth / 2)
+      this.menu.style.left = parseInt(parent_rect.left) + "px";
+    else
+      this.menu.style.right = parseInt(window.innerWidth - parent_rect.right) + "px";
+
+    menu_rect = this.menu.getBoundingClientRect();
+
+    if(menu_rect.bottom > window.innerHeight)
+      this.menu.style.top = "0px";
+
+    if(menu_rect.bottom > window.innerHeight)
+      this.menu.style.bottom = "0px";
+      
+    }
+
+  ret.hide_menu = function()
+    {
+    this.menu.dataset.active = "false";
+    console.log("hide menu");
+    
+    }
+
+  ret.toggle_menu = function()
+    {
+    if(this.menu.dataset.active === "true")
+      this.hide_menu();
+    else
+      this.show_menu();
+    }
+    
+  table.onclick = function()
+    {
+    this.el.toggle_menu();
+    }
+
+  ret.fire = function(str)
+    {
+    console.log("Menu fire: %s", str);
+    this.hide_menu();
+
+    let msg = create_set_state_msg(this.path, BG_CMD_SET_STATE);
+    msg_set_arg_string(msg, 3, str);
+    this.cb.handle_msg(msg);
+    }
+    
+  ret.update = function(dict)
+    {
+    let i;
+    let label = dict_get_string(dict, GAVL_META_LABEL);
+    if(label)
+      {
+      clear_element(this.label);
+      append_dom_text(this.label, label);
+      }
+    /* Options */
+    let options = dict_get_array(dict, GAVL_CONTROL_OPTIONS);
+    if(options)
+      {
+      clear_element(this.menu);
+      for(i = 0; i < options.length; i++)
+	{
+        let div;
+        let label = dict_get_string(options[i].v, GAVL_META_LABEL);
+
+        if(label)
+          {
+          div = append_dom_element(this.menu, "div");
+          div.setAttribute("class", "menu-item");
+          append_dom_text(div, label);
+          div.dataset.id = dict_get_string(options[i].v, GAVL_META_ID);
+
+          div.menu = this;
+   
+          div.onclick = function()
+	    {
+//            console.log("Hit menu item: %s", this.dataset.id);
+            this.menu.fire(this.dataset.id);
+	    }
+
+	    
+	  }
+        
+ 	  
+	}
+      }
+
+      
+      
+    }
+  
   ret.set_value = function(val)
     {
     let i;
-
+    let found = false;
     let options = dict_get_array(this.dict, GAVL_CONTROL_OPTIONS);
-    clear_element(this.label);
-    console.log("set_value: " + val);
+    clear_element(this.value_label);
+    console.log("pulldown set_value: " + val);
     for(i = 0; i < options.length; i++)
       {
       if(dict_get_string(options[i].v, GAVL_META_ID) == val)
         {
-        append_dom_text(this.label, dict_get_string(options[i].v, GAVL_META_LABEL));
-        break;
+        append_dom_text(this.value_label, dict_get_string(options[i].v, GAVL_META_LABEL));
+        this.menu.children[i].dataset.active = "true";
+        found = true;  
+	}
+      else
+	{
+        this.menu.children[i].dataset.active = "false";
 	}
       }
+    if(!found)
+      console.log("Not found " + JSON.stringify(options));
       
     }
- 
+
   }
 
 function create_volume(ret)
@@ -296,6 +431,11 @@ function create_link(ret)
     {
     window.location = dict_get_string(this.el.dict, GAVL_META_URI);
     }
+
+  ret.button.onclick = function(evt)
+    {
+    window.location = dict_get_string(this.el.dict, GAVL_META_URI);
+    }
     
   let tr = append_dom_element(table, "tr");
   let td;
@@ -311,10 +451,6 @@ function create_link(ret)
   ret.button = append_dom_element(td, "button");
   ret.button.setAttribute("class", "icon-chevron-right");
   ret.button.el = ret;
-  ret.button.onclick = function(evt)
-    {
-    window.location = dict_get_string(this.el.dict, GAVL_META_URI);
-    }
     
   }
 
@@ -408,7 +544,7 @@ export function create(parent, dict, cb, path)
     case GAVL_META_CLASS_CONTAINER:
       create_container(ret);
       break;
-      case GAVL_META_CLASS_CONTROL_LINK:
+    case GAVL_META_CLASS_CONTROL_LINK:
       create_link(ret);
       break;
     case GAVL_META_CLASS_CONTROL_GROUP:
@@ -419,7 +555,11 @@ export function create(parent, dict, cb, path)
       break;
     }
 
-  if(ret.set_value)
+  if(ret.update)
+    ret.update(ret.dict);
+
+  if(ret.set_value && ret.dict[GAVL_CONTROL_VALUE] && ret.dict[GAVL_CONTROL_VALUE].v)
     ret.set_value(ret.dict[GAVL_CONTROL_VALUE].v);
+
     
   }

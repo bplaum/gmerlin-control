@@ -136,6 +136,43 @@ gavl_dictionary_t * gavl_control_add_option(gavl_dictionary_t * ctrl, const char
   return new_dict;
   }
 
+gavl_dictionary_t * gavl_control_get_option(gavl_dictionary_t * ctrl, const char * tag, const char * val)
+  {
+  int i;
+  gavl_dictionary_t * dict;
+  const char * test_val;
+  gavl_array_t * arr = gavl_dictionary_get_array_create(ctrl, GAVL_CONTROL_OPTIONS);
+
+  for(i = 0; i < arr->num_entries; i++)
+    {
+    if((dict = gavl_value_get_dictionary_nc(&arr->entries[i])) &&
+       (test_val = gavl_dictionary_get_string(dict, tag)) &&
+       !strcmp(val, test_val))
+      return dict;
+    }
+  return NULL;
+  }
+
+void gavl_control_delete_option(gavl_dictionary_t * ctrl, const char * id)
+  {
+  int i;
+  const gavl_dictionary_t * dict;
+  const char * test_id;
+  gavl_array_t * arr = gavl_dictionary_get_array_create(ctrl, GAVL_CONTROL_OPTIONS);
+
+  for(i = 0; i < arr->num_entries; i++)
+    {
+    if((dict = gavl_value_get_dictionary(&arr->entries[i])) &&
+       (test_id = gavl_dictionary_get_string(dict, GAVL_META_ID)) &&
+       !strcmp(id, test_id))
+      {
+      gavl_array_splice_val(arr, i, 1, NULL);
+      return;
+      }
+    }
+  
+  }
+
 const gavl_dictionary_t * gavl_control_get(const gavl_dictionary_t * dict, const char * path)
   {
   char ** el;
