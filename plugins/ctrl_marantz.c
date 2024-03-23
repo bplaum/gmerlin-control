@@ -48,6 +48,20 @@ static void set_status(marantz_t * m, int status)
   {
   m->start_time = gavl_time_get_monotonic();
   m->status = status;
+
+  if(m->status == STATUS_OFFLINE)
+    {
+    if(m->fd >= 0)
+      {
+      gavl_socket_close(m->fd);
+      m->fd = -1;
+      }
+    if(m->io)
+      {
+      gavl_io_destroy(m->io);
+      m->io = NULL;
+      }
+    }
   }
 
 static void queue_msg(marantz_t * m, const char * cmd)
@@ -176,8 +190,11 @@ static int read_msg(marantz_t * m)
     if(bytes <= 0)
       {
       /* Disconnected */
+      return -1;
       }
 
+    ret++;
+    
     m->line_buf_len += bytes;
     m->line_buf[m->line_buf_len] = '\0';
 
@@ -197,9 +214,8 @@ static int read_msg(marantz_t * m)
       
       m->line_buf_len -= (end - m->line_buf);
       }
-    
     }
-
+  return ret;
   }
 
 static int update_marantz(void * priv)
@@ -211,6 +227,12 @@ static int update_marantz(void * priv)
   switch(m->status)
     {
     case STATUS_OFFLINE:
+      if(gavl_time_get_monotonic() - m->start_time > 2 * GAVL_TIME_SCALE)
+        {
+        /* Try to reconnect */
+        m->fd = gavl_socket_connect_inet(m->addr, 0);
+        set_status(m, STATUS_CONNECT);
+        }
       break;
     case STATUS_IDLE:
       {
@@ -221,7 +243,17 @@ static int update_marantz(void * priv)
         queue_msg(m, "SI?\r");
         m->start_time = cur;
         }
-      ret += read_msg(m);
+      
+      result = read_msg(m);
+
+      if(result < 0)
+        {
+        set_status(m, STATUS_OFFLINE);
+        return 1;
+        }
+      
+      ret += result;
+      
       ret += flush_msg(m);
       }
       break;
