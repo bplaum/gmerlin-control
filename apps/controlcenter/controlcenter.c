@@ -220,7 +220,7 @@ static int handle_websocket_message(void * data, gavl_msg_t * msg)
 
           //          fprintf(stderr, "Set state rel %s %s\n", ctx, var);
           
-          if(gavl_control_handle_set_rel(&c->controls, ctx, var, &val))
+          if(ctx && gavl_control_handle_set_rel(&c->controls, ctx, var, &val))
             {
             gavl_msg_set_state(&new_msg,
                                BG_CMD_SET_STATE,
@@ -905,6 +905,18 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_array_splice_val_nocopy(arr, -1, 0, &val);
     gavl_value_reset(&val);
 
+    /* Volume */
+    dict = gavl_value_set_dictionary(&val);
+    gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_VOLUME);
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "volume");
+    gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Volume");
+        
+    gavl_dictionary_set_int(dict, GAVL_CONTROL_MIN, 0);
+    gavl_dictionary_set_int(dict, GAVL_CONTROL_MAX, 100);
+    gavl_dictionary_set_int(dict, GAVL_CONTROL_VALUE, 50);
+    gavl_control_set_type(dict, GAVL_TYPE_INT);
+    gavl_array_splice_val_nocopy(arr, -1, 0, &val);
+    gavl_value_reset(&val);
     
     }
   

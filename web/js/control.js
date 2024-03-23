@@ -62,12 +62,14 @@ function control_get_type(dict)
 function create_button(ret)
   {
   ret.button = append_dom_element(ret.parent, "button");
+  ret.button.setAttribute("class", "clickable");
+
   append_dom_text(ret.button, dict_get_string(ret.dict, GAVL_META_LABEL));
 
   ret.button.el = ret;
 
   // console.log("create_button " + dict_get_string(ret.dict, GAVL_META_LABEL));
-    
+  
   ret.button.onclick = function(evt)
     {
     let msg = msg_create(GAVL_CMD_CONTROL_PUSH_BUTTON, GAVL_MSG_NS_CONTROL);
@@ -81,6 +83,9 @@ function create_button(ret)
 function create_slider(ret)
   {
   let str;
+
+  ret.parent.setAttribute("class", "widget");
+
   ret.label = append_dom_element(ret.parent, "div");
 
 
@@ -132,7 +137,7 @@ function create_powerbutton(ret)
   let td = append_dom_element(table, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
-  ret.button.setAttribute("class", "icon-power");
+  ret.button.setAttribute("class", "icon-power clickable");
   ret.button.el = ret;
   ret.button.setAttribute("id", ret.path);
 
@@ -168,6 +173,7 @@ function create_powerbutton(ret)
 function create_meter(ret)
   {
   ret.label = append_dom_element(ret.parent, "div");
+  ret.parent.setAttribute("class", "widget");
  
   ret.meter = append_dom_element(ret.parent, "meter");
   ret.meter.min  = ret.dict[GAVL_CONTROL_MIN].v;
@@ -215,6 +221,7 @@ function create_meter(ret)
 function create_volume(ret)
   {
   let table = append_dom_element(ret.parent, "table");
+  ret.parent.setAttribute("class", "widget");
 
   table.style = "width: 100%;"  
 
@@ -224,7 +231,7 @@ function create_volume(ret)
   let td = append_dom_element(tr, "td");
   td.style = "width: 0.1%; white-space: nowrap;"  
   let button = append_dom_element(td, "button");
-  button.setAttribute("class", "icon-chevron-up");
+  button.setAttribute("class", "icon-chevron-up clickable");
   button.el = ret;
 
   button.onclick = function()
@@ -247,7 +254,7 @@ function create_volume(ret)
   td = append_dom_element(tr, "td");
   td.style = "width: 0.1%; white-space: nowrap;"  
   button = append_dom_element(td, "button");
-  button.setAttribute("class", "icon-chevron-down");
+  button.setAttribute("class", "icon-chevron-down clickable");
   button.el = ret;
 
   button.onclick = function()
@@ -299,6 +306,8 @@ function create_pulldown(ret)
     
   table = append_dom_element(td, "table");
   ret.button = table;
+  ret.button.setAttribute("class", "clickable");
+    
   table.style = "width: 100%;"  
   table.el = ret;
       
@@ -450,6 +459,7 @@ function create_pulldown(ret)
 function create_container(ret)
   {
   let table = append_dom_element(ret.parent, "table");
+  table.setAttribute("class", "widget");
   table.style = "width: 100%;"  
   table.el = ret;
   table.ondblclick = function(evt)
@@ -470,7 +480,7 @@ function create_container(ret)
   td = append_dom_element(tr, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
-  ret.button.setAttribute("class", "icon-chevron-right");
+  ret.button.setAttribute("class", "icon-chevron-right clickable");
   ret.button.el = ret;
   ret.button.onclick = function(evt)
     {
@@ -484,6 +494,7 @@ function create_container(ret)
 function create_link(ret)
   {
   let table = append_dom_element(ret.parent, "table");
+  table.setAttribute("class", "widget");
   table.style = "width: 100%;"  
   table.el = ret;
   table.ondblclick = function(evt)
@@ -510,7 +521,7 @@ function create_link(ret)
     window.location = dict_get_string(this.el.dict, GAVL_META_URI);
     }
 
-  ret.button.setAttribute("class", "icon-chevron-right");
+  ret.button.setAttribute("class", "icon-chevron-right clickable");
   ret.button.el = ret;
     
   }

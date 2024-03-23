@@ -201,7 +201,7 @@ static int read_msg(marantz_t * m)
     if((end = strchr(m->line_buf, '\r')))
       {
       *end = '\0';
-      fprintf(stderr, "Got message: %s\n", m->line_buf);
+      //      fprintf(stderr, "Got message: %s\n", m->line_buf);
       handle_marantz_msg(m);
 
 #if 0      
