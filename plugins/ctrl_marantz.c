@@ -132,7 +132,7 @@ static void handle_marantz_msg(marantz_t * m)
   gavl_value_t val;
   const char * var = NULL;
   gavl_value_init(&val);
-  
+
   if(gavl_string_starts_with(m->line_buf, "MV") && isdigit(m->line_buf[2]))
     {
     pos = &m->line_buf[2];
@@ -201,7 +201,7 @@ static int read_msg(marantz_t * m)
     if((end = strchr(m->line_buf, '\r')))
       {
       *end = '\0';
-      //      fprintf(stderr, "Got message: %s\n", m->line_buf);
+      fprintf(stderr, "Got message: %s\n", m->line_buf);
       handle_marantz_msg(m);
 
 #if 0      
@@ -232,6 +232,7 @@ static int update_marantz(void * priv)
         /* Try to reconnect */
         m->fd = gavl_socket_connect_inet(m->addr, 0);
         set_status(m, STATUS_CONNECT);
+        ret++;
         }
       break;
     case STATUS_IDLE:
