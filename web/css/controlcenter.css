@@ -60,6 +60,12 @@ div#browser > div
   background-color: #F0F0F0;
   }
 
+legend
+  {
+  border-style: outset;
+  border-width: 2px;
+  }
+
 /* Control */
 
 div[data-klass="control.slider"] input,
