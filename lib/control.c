@@ -302,11 +302,19 @@ int gavl_control_handle_set_rel(const gavl_dictionary_t * control,
 
   if(!strcmp(klass, GAVL_META_CLASS_CONTROL_POWERBUTTON))
     {
+
     if(val_cur && (val_cur->type == GAVL_TYPE_INT))
       gavl_value_set_int(&val_new, !val_cur->v.i);
     else
       gavl_value_set_int(&val_new, 1);
+
+    fprintf(stderr, "Powerbutton: (ctx: %s, var: %s) %d\n", ctx, var, val_new.v.i);
     
+    ret = 1;
+    }
+  else if(!strcmp(klass, GAVL_META_CLASS_CONTROL_VOLUME))
+    {
+    gavl_value_copy(&val_new, val);
     ret = 1;
     }
   else

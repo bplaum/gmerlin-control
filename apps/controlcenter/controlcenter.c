@@ -340,8 +340,6 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
 
           
           new_ctx = ctx_to_global(c->cur, ctx);
-
-          //          fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
           
           if((control = gavl_control_get_create(&c->controls, new_ctx)) &&
              (control = gavl_control_get_create(control, var)))
@@ -354,10 +352,15 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
               forward = bg_msg_sink_get(c->ctrl.evt_sink);
               gavl_msg_set_state(forward, BG_MSG_STATE_CHANGED, last, new_ctx, var, &val);
               bg_msg_sink_put(c->ctrl.evt_sink);
-              free(new_ctx);
+              fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
+              gavl_value_dump(&val, 2);
+              fprintf(stderr, "\n");
+              
               gavl_dictionary_set(control, GAVL_CONTROL_VALUE, &val);
+              
               }
             }
+          free(new_ctx);
           gavl_value_free(&val);
           }
           break;

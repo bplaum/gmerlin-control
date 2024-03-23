@@ -79,7 +79,6 @@ static void pa_state_cb(pa_context *c, void *userdata)
     }
   }
 
-
 static void delete_device(pulse_t * pulse, const char * id)
   {
   
@@ -123,7 +122,6 @@ static void pa_sink_cb(pa_context *c, const pa_sink_info *l, int eol, void *user
     free(id);
     }
   }
-
 
 static void pa_server_cb(pa_context *c, const pa_server_info *l, void *userdata)
   {

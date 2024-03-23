@@ -136,7 +136,8 @@ function create_powerbutton(ret)
   ret.button.el = ret;
   ret.button.setAttribute("id", ret.path);
 
-  ret.parent.dataset.value = ret.dict[GAVL_CONTROL_VALUE].v;
+  if(ret.dict[GAVL_CONTROL_VALUE] && ret.dict[GAVL_CONTROL_VALUE].v)
+    ret.parent.dataset.value = ret.dict[GAVL_CONTROL_VALUE].v;
     
   ret.button.onclick = function(evt)
     {
@@ -208,6 +209,68 @@ function create_meter(ret)
     {
     this.meter.value = val;
     this.set_label();
+    }
+  }
+
+function create_volume(ret)
+  {
+  let table = append_dom_element(ret.parent, "table");
+
+  table.style = "width: 100%;"  
+
+  let tr = append_dom_element(table, "tr");
+  ret.label = append_dom_element(tr, "td");
+
+  let td = append_dom_element(tr, "td");
+  td.style = "width: 0.1%; white-space: nowrap;"  
+  let button = append_dom_element(td, "button");
+  button.setAttribute("class", "icon-chevron-up");
+  button.el = ret;
+
+  button.onclick = function()
+    {
+    /* Volume up */
+    let msg = create_set_state_msg(this.el.path, BG_CMD_SET_STATE);
+    msg_set_arg(msg, 3, GAVL_TYPE_INT, 1);
+    this.el.cb.handle_msg(msg);
+    }
+    
+  tr = append_dom_element(table, "tr");
+  td = append_dom_element(tr, "td");
+  ret.meter = append_dom_element(td, "meter");
+
+  ret.meter.min  = ret.dict[GAVL_CONTROL_MIN].v;
+  ret.meter.max  = ret.dict[GAVL_CONTROL_MAX].v;
+  ret.meter.setAttribute("id", ret.path);
+  ret.meter.el = ret;
+  
+  td = append_dom_element(tr, "td");
+  td.style = "width: 0.1%; white-space: nowrap;"  
+  button = append_dom_element(td, "button");
+  button.setAttribute("class", "icon-chevron-down");
+  button.el = ret;
+
+  button.onclick = function()
+    {
+    /* Volume down */
+    let msg = create_set_state_msg(this.el.path, BG_CMD_SET_STATE);
+    msg_set_arg(msg, 3, GAVL_TYPE_INT, -1);
+    this.el.cb.handle_msg(msg);
+    }
+    
+  ret.update = function(dict)
+    {
+    let label = dict_get_string(dict, GAVL_META_LABEL);
+    if(label)
+      {
+      clear_element(this.label);
+      append_dom_text(this.label, label);
+      }
+    }
+
+  ret.set_value = function(val)
+    {
+    this.meter.value = val;
     }
   }
 
@@ -383,10 +446,6 @@ function create_pulldown(ret)
 
   }
 
-function create_volume(ret)
-  {
-
-  }
 
 function create_container(ret)
   {
@@ -547,10 +606,13 @@ export function create(parent, dict, cb, path)
     case GAVL_META_CLASS_CONTROL_LINK:
       create_link(ret);
       break;
+    case GAVL_META_CLASS_CONTROL_VOLUME:
+      create_volume(ret);
+      break;
     case GAVL_META_CLASS_CONTROL_GROUP:
       create_controlgroup(ret);
       break;
-      case GAVL_META_CLASS_CONTAINER_INVISIBLE:
+    case GAVL_META_CLASS_CONTAINER_INVISIBLE:
       create_invisible(ret);
       break;
     }

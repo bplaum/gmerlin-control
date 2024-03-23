@@ -77,14 +77,14 @@ function create_connection()
             {
             let ctrl;
             let ctx = msg.args[1].v;
-//            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
-//			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
+            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
+			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
 
               if((ctrl = document.getElementById(msg.args[1].v + "/" + msg.args[2].v)) &&
 		 (ctrl = ctrl.el))
 		ctrl.set_value(msg.args[3].v);
-	      else
-		console.log("Cannot find control");
+//	      else
+//		console.log("Cannot find control");
 		
             if(window.browser.path != msg.args[1].v)
 	      return;

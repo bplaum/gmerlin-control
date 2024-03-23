@@ -1,3 +1,4 @@
+
 body * {
     outline: none;
     font-size: inherit;
@@ -58,9 +59,17 @@ div#browser > div
 
 div[data-klass="control.slider"] input,
 div[data-klass="control.button"] button,
-div[data-klass="control.meter"] meter
+div[data-klass="control.meter"] meter,
+div[data-klass="control.volume"] meter
   {
   width: 100%;
+  }
+
+div[data-klass="control.power"] button
+  {
+  width:  1.4em;
+  height: 1.4em;
+  font-size: 150%;
   }
 
 div[data-klass="control.power"][data-value="1"] button
@@ -88,6 +97,8 @@ div[data-klass="control.pulldown"] button
 
 div[data-klass="container"] button:active,
 div[data-klass="control.link"] button:active,
+div[data-klass="control.power"] button:active,
+div[data-klass="control.volume"] button:active
   {
       border-style: solid;
       background-color: #404040;
@@ -97,7 +108,8 @@ div[data-klass="control.link"] button:active,
 div[data-klass="container"],
 div[data-klass="control.link"],
 div[data-klass="control.pulldown"] table table,
-.pulldown-menu
+.pulldown-menu,
+div[data-klass="control.power"] button
   {
   border-width: 2pt;
   border-style: solid;
@@ -105,15 +117,13 @@ div[data-klass="control.pulldown"] table table,
   }
 
 div[data-klass="control.pulldown"] table table:hover,
-.menu-item[data-active="true"]
+.menu-item[data-active="true"],
+button:hover
   {
-  background: #707070;
+  background: #808080;
   }
 
-
-div[data-klass="container"] .icon-folder,
-div[data-klass="control.link"] .icon-globe
-div[data-klass="control.pulldown"] .icon-chevron-down
+[class^="icon-"]
   {
   width:  1.4em;
   height: 1.4em;
