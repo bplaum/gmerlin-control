@@ -491,10 +491,6 @@ function create_link(ret)
     window.location = dict_get_string(this.el.dict, GAVL_META_URI);
     }
 
-  ret.button.onclick = function(evt)
-    {
-    window.location = dict_get_string(this.el.dict, GAVL_META_URI);
-    }
     
   let tr = append_dom_element(table, "tr");
   let td;
@@ -508,6 +504,12 @@ function create_link(ret)
   td = append_dom_element(tr, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
+
+  ret.button.onclick = function(evt)
+    {
+    window.location = dict_get_string(this.el.dict, GAVL_META_URI);
+    }
+
   ret.button.setAttribute("class", "icon-chevron-right");
   ret.button.el = ret;
     
