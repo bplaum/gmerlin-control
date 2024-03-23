@@ -48,7 +48,8 @@ footer
     border-top-style: none;
   }
 
-div#browser > div
+div#browser > div,
+fieldset > div
   {
   padding: 10px;
   }
