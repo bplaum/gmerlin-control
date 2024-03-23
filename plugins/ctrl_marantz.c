@@ -120,8 +120,8 @@ static double parse_volume(const char * pos)
   else
     ret = -1.0; // Error
 
-  fprintf(stderr, "Parse volume: %f\n", ret);
-  gavl_hexdump((uint8_t*)pos, strlen(pos), 16);
+  //  fprintf(stderr, "Parse volume: %f\n", ret);
+  //  gavl_hexdump((uint8_t*)pos, strlen(pos), 16);
   
   return ret;
   }
@@ -333,7 +333,7 @@ static int handle_msg_marantz(void * priv, gavl_msg_t * msg)
                              &var,
                              &val, NULL);
 
-          fprintf(stderr, "Set value: %s\n", var);
+          //          fprintf(stderr, "Set value: %s\n", var);
 
           if(!strcmp(var, "volume"))
             {
