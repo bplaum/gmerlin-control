@@ -99,8 +99,18 @@ static void pa_sink_cb(pa_context *c, const pa_sink_info *l, int eol, void *user
     
     if(!(opt = gavl_control_get_option(pulse->default_sink, GAVL_META_ID, id)))
       {
+      const char * card_name;
+
+      if((card_name = pa_proplist_gets(l->proplist, "alsa.card_name")))
+        {
+        char * label = gavl_sprintf("%s [%s]", l->description, card_name);
+        opt = gavl_control_add_option(pulse->default_sink, id, label);
+        free(label);
+        }
+      else
+        opt = gavl_control_add_option(pulse->default_sink, id, l->description);
+      
       //  fprintf(stderr, "Sink added %s\n", l->description);
-      opt = gavl_control_add_option(pulse->default_sink, id, l->description);
       gavl_dictionary_set_string(opt, GAVL_META_URI, l->name);
       gavl_dictionary_set_int(opt, META_NUM_CHANNELS, l->volume.channels);
       }
