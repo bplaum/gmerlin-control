@@ -624,8 +624,7 @@ static int handle_set_internal(bg_http_connection_t * conn, void * data, int rel
 
   if(!control)
     bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");
-  
-  if(!val_from_conn(&val, control, conn))
+  else if(!val_from_conn(&val, control, conn))
     bg_http_connection_init_res(conn, conn->protocol, 400, "Bad Request");
   else
     {
