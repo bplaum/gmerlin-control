@@ -633,7 +633,7 @@ export function create(parent, dict, cb, path)
   if(ret.update)
     ret.update(ret.dict);
 
-  if(ret.set_value && ret.dict[GAVL_CONTROL_VALUE] && ret.dict[GAVL_CONTROL_VALUE].v)
+  if(ret.set_value && ret.dict[GAVL_CONTROL_VALUE])
     ret.set_value(ret.dict[GAVL_CONTROL_VALUE].v);
 
     
