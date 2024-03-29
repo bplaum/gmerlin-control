@@ -84,8 +84,6 @@ function create_slider(ret)
   {
   let str;
 
-  ret.parent.setAttribute("class", "widget");
-
   ret.label = append_dom_element(ret.parent, "div");
 
 
@@ -132,9 +130,9 @@ function create_powerbutton(ret)
   let table = append_dom_element(ret.parent, "table");
   table.style = "width: 100%;"  
   let tr = append_dom_element(table, "tr");
-  ret.label = append_dom_element(table, "td");
+  ret.label = append_dom_element(tr, "td");
 
-  let td = append_dom_element(table, "td");
+  let td = append_dom_element(tr, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
   ret.button.setAttribute("class", "icon-power clickable");
@@ -173,7 +171,7 @@ function create_powerbutton(ret)
 function create_meter(ret)
   {
   ret.label = append_dom_element(ret.parent, "div");
-  ret.parent.setAttribute("class", "widget");
+
  
   ret.meter = append_dom_element(ret.parent, "meter");
   ret.meter.min  = ret.dict[GAVL_CONTROL_MIN].v;
@@ -221,7 +219,7 @@ function create_meter(ret)
 function create_volume(ret)
   {
   let table = append_dom_element(ret.parent, "table");
-  ret.parent.setAttribute("class", "widget");
+
 
   table.style = "width: 100%;"  
 
@@ -459,7 +457,6 @@ function create_pulldown(ret)
 function create_container(ret)
   {
   let table = append_dom_element(ret.parent, "table");
-  table.setAttribute("class", "widget");
   table.style = "width: 100%;"  
   table.el = ret;
   table.ondblclick = function(evt)
@@ -494,7 +491,6 @@ function create_container(ret)
 function create_link(ret)
   {
   let table = append_dom_element(ret.parent, "table");
-  table.setAttribute("class", "widget");
   table.style = "width: 100%;"  
   table.el = ret;
   table.ondblclick = function(evt)
@@ -592,6 +588,10 @@ export function create(parent, dict, cb, path)
     ret.path   = path + "/" + dict_get_string(dict, GAVL_META_ID);
   else
     ret.path   = "/" + dict_get_string(dict, GAVL_META_ID);
+
+  if((klass != GAVL_META_CLASS_CONTROL_GROUP) &&
+     (klass != GAVL_META_CLASS_CONTAINER_INVISIBLE))
+    ret.parent.setAttribute("class", "widget");
       
   switch(klass)
     {

@@ -9,7 +9,7 @@
 #include <gavl/log.h>
 #define LOG_DOMAIN "controlcenter"
 
-// #define TEST_CONTROLS
+#define TEST_CONTROLS
 
 #ifdef TEST_CONTROLS
 static void init_controls_test(const char * path, gavl_array_t * ret);

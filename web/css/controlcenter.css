@@ -17,7 +17,7 @@ html, body
 
 html
   {
-  font-size: 36px;
+  font-size: 24px;
   font-family: sans-serif-condensed,Helvetica,Arial,sans-serif;
   }
 
@@ -79,13 +79,6 @@ div[data-klass="control.volume"] meter
   width: 100%;
   }
 
-div[data-klass="control.power"] button
-  {
-  width:  1.4em;
-  height: 1.4em;
-  font-size: 150%;
-  }
-
 div[data-klass="control.power"][data-value="1"] button
   {
   color: #00ff00;
@@ -104,15 +97,26 @@ div[data-klass="control.link"] button,
       color: inherit;
   }
 
+.clickable
+  {
+  border-radius: 0.5em;
+  }
+
 .clickable,
 .pulldown-menu
   {
-  border-width: 3pt;
-/*  border-style: solid; */
+  border-width: 3px;
   border-style: outset;
   background: #e0e0e0;
-  min-height: 2.0em;
+/*  min-height: 2.0em; */
   }
+
+meter {
+  height: 1.5em;
+/*  border-width: 10px; 
+  border-style: inset; */
+/*   box-shadow: 0 5px 5px -5px #333 inset; */
+}
 
 .clickable:active
   {
@@ -124,17 +128,15 @@ div[data-klass="control.link"] button,
 .clickable:hover
   {
   background-color: #808080;
-  
   }
 
-/* 
-div[data-klass="container"] button:active,
-div[data-klass="control.link"] button:active,
-div[data-klass="control.power"] button:active,
-div[data-klass="control.volume"] button:active
+ 
+div[data-klass="control.button"] button
   {
-      border-style: solid;
+      height: 2em;
   }
+
+/*
 
 div[data-klass="container"],
 div[data-klass="control.link"],
@@ -156,8 +158,8 @@ div[data-klass="control.power"] button
 
 [class^="icon-"]
   {
-  width:  1.4em;
-  height: 1.4em;
+  width:  1.8em;
+  height: 1.8em;
   font-size: 150%;
   }
 
