@@ -96,7 +96,6 @@ include/Makefile \
 lib/Makefile \
 m4/Makefile \
 apps/Makefile \
-apps/controlpanel/Makefile \
 apps/controlcenter/Makefile \
 apps/control/Makefile \
 plugins/Makefile \

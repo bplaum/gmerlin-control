@@ -1,7 +1,6 @@
 pkgdatadir = $(datadir)/gmerlin-control/web
 
 files = \
-controlpanel.html \
 controlcenter.html
 
 pkgdata_DATA = $(files)

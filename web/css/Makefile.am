@@ -1,7 +1,6 @@
 pkgdatadir = $(datadir)/gmerlin-control/web/css
 
 files = \
-controlpanel.css \
 controlcenter.css
 
 pkgdata_DATA = $(files)

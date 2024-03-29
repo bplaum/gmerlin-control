@@ -1,7 +1,6 @@
 pkgdatadir = $(datadir)/gmerlin-control/web/js
 
 files = \
-controlpanel.js \
 control.js \
 controlcenter.js \
 vars.js
