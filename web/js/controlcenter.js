@@ -6,6 +6,20 @@ var server_conn = null;
 /* Application state and history */
 var my_history = new Array();
 
+function adjust_header_footer()
+  {
+  let header_height = document.getElementsByTagName("header")[0].getBoundingClientRect().height;
+  let el = document.getElementById("browser");
+  el.style.paddingTop = parseInt(header_height) + "px";
+  }
+
+function update_header()
+  {
+  let el = document.getElementById("header-label");
+  clear_element(el);
+  append_dom_text(el, "");
+  adjust_header_footer();
+  }
 
 /* Browser */
 
@@ -52,16 +66,36 @@ function create_connection()
   ws.onclose = function(evt)
     {
     console.log("Server websocket closed (code: " + evt.code + " :(");
+    let el = document.getElementById("header-icon");
+    el.setAttribute("class", "icon-x");
+
+    el = document.getElementById("header-status");
+    clear_element(el);
+    append_dom_text(el, "Disconnected");
+    adjust_header_footer();
     };
   
   ws.onopen = function()
     {
     let msg;
-    console.log("Server websocket open, now browsing to " + control.path_decode(window.location.pathname.substring(5)));
+    let path = control.path_decode(window.location.pathname.substring(5));
+    console.log("Server websocket open, now browsing to " + path);
 
+    let el = document.getElementById("header-icon");
+    el.setAttribute("class", "icon-network");
+
+    el = document.getElementById("header-status");
+    clear_element(el);
+    append_dom_text(el, "Connected to " + window.location.host);
+      
     msg = msg_create(GAVL_FUNC_CONTROL_BROWSE, GAVL_MSG_NS_CONTROL);
-    dict_set_string(msg.header, GAVL_MSG_CONTEXT_ID, control.path_decode(window.location.pathname.substring(5)));
+    dict_set_string(msg.header, GAVL_MSG_CONTEXT_ID, path);
     msg_send(msg, this);
+
+    el = document.getElementById("header-path");
+    clear_element(el);
+    append_dom_text(el, path);
+    adjust_header_footer();
     };
 
   ws.onmessage = function(evt)

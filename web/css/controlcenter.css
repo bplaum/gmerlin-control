@@ -34,12 +34,27 @@ header, footer {
     left: 0px;
     right: 0px;
     z-index: 50;
-  }
+
+    border-style: outset;
+    border-width: 2px;
+    background-color: #F0F0FF;
+    padding: 10px;
+}
 
 header
   {
     top: 0px;
-    border-bottom-style: none;
+/*    border-bottom-style: none; */
+  }
+
+#header-status
+  {
+      font-size: 80%;
+  }
+
+#header-path
+  {
+      font-weight: bold;
   }
 
 footer
