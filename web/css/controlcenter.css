@@ -48,17 +48,25 @@ footer
     border-top-style: none;
   }
 
-div#browser > div,
+fieldset
+  {
+  margin-top:    5px;
+  margin-bottom: 5px;
+  }
+
+/* div#browser > div,
 fieldset > div
   {
   padding: 10px;
   }
+*/
 
 .widget
   {
   border-style: outset;
   border-width: 2px;
   background-color: #F0F0F0;
+  padding: 10px;
   }
 
 legend
@@ -67,6 +75,7 @@ legend
   border-width: 2px;
   font-weight: bold;
   padding: 10px;
+  background-color: #ffffcc;
   }
 
 /* Control */
