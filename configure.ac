@@ -43,6 +43,10 @@ PKG_CHECK_MODULES(GMERLIN, gmerlin >= $GMERLIN_REQUIRED, , AC_MSG_ERROR("gmerlin
 AC_SUBST(GMERLIN_REQUIRED)
 gmerlin_plugindir='$(libdir)/gmerlin/plugins'
 
+
+PKG_CHECK_MODULES(MOSQUITTO, libmosquitto, , AC_MSG_ERROR("libmosquitto not found"))
+
+
 dnl
 dnl Optional libraries
 dnl

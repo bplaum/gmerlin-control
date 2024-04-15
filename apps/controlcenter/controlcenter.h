@@ -4,19 +4,31 @@
 
 #include "control.h"
 
-typedef struct
-  {
-  bg_plugin_handle_t * h;
-  bg_control_plugin_t * c;
-  char * path;
-  bg_controllable_t * ctrl;
-  } control_plugin_t;
+#define PLUGIN_FLAG_NOMASTER (1<<0)
+
+typedef struct control_center_s control_center_t;
 
 typedef struct
   {
+  int flags;
+  
+  bg_plugin_handle_t * h;
+  bg_control_plugin_t * c;
+
+  char * path;
+  char * uri;
+  char * master;
+  
+  bg_controllable_t * ctrl;
+
+  struct control_center_s * center;
+  bg_msg_sink_t * sink;
+  } control_plugin_t;
+
+struct control_center_s
+  {
   control_plugin_t * plugins;
   int num_plugins;
-  control_plugin_t * cur;
   
   gavl_dictionary_t controls;
   
@@ -24,10 +36,8 @@ typedef struct
   bg_websocket_context_t * ws;
 
   bg_controllable_t ctrl;
-
-  bg_msg_sink_t * backend_sink;
   
-  } control_center_t;
+  };
 
 int controlcenter_init(control_center_t * ret);
 void controlcenter_cleanup(control_center_t * c);

@@ -511,14 +511,20 @@ function create_link(ret)
   td = append_dom_element(tr, "td");
   td.style = "text-align: right;"  
   ret.button = append_dom_element(td, "button");
+  ret.button.el = ret;
 
   ret.button.onclick = function(evt)
     {
-    window.location = dict_get_string(this.el.dict, GAVL_META_URI);
+    window.location = this.el.uri;
     }
 
+  ret.update = function(dict)
+    {
+    this.uri = dict_get_string(dict, GAVL_META_URI);
+    }
+    
   ret.button.setAttribute("class", "icon-chevron-right clickable");
-  ret.button.el = ret;
+  ret.uri = dict_get_string(ret.dict, GAVL_META_URI);
     
   }
 

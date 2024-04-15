@@ -186,6 +186,25 @@ static void browse(control_center_t * c, gavl_msg_t * msg)
   bg_msg_sink_put(c->ctrl.evt_sink);
   }
 
+static void forward_to_slaves(control_center_t * c, control_plugin_t * p,
+                              gavl_msg_t * msg)
+  {
+  int i;
+
+  for(i = 0; i < c->num_plugins; i++)
+    {
+    if(&c->plugins[i] == p)
+      continue;
+
+    if(c->plugins[i].master && !strcmp(p->uri, c->plugins[i].master) &&
+       !(c->plugins[i].flags & PLUGIN_FLAG_NOMASTER))
+      {
+      bg_msg_sink_put_copy(c->plugins[i].ctrl->cmd_sink, msg);
+      forward_to_slaves(c, &c->plugins[i], msg);
+      }
+    }
+  
+  }
 
 static int handle_websocket_message(void * data, gavl_msg_t * msg)
   {
@@ -253,6 +272,9 @@ static int handle_websocket_message(void * data, gavl_msg_t * msg)
             
             forward = bg_msg_sink_get(p->ctrl->cmd_sink);
             gavl_msg_set_state(forward, BG_CMD_SET_STATE, last, ctx, var, &val);
+
+            if(p->uri)
+              forward_to_slaves(c, p, forward);
             
             }
           else
@@ -308,11 +330,13 @@ static char * ctx_to_global(control_plugin_t * p, const char * ctx)
     return gavl_sprintf("%s%s", p->path, ctx);
   }
 
+
 /* Messages from the backends */
 
 static int handle_control_message(void * data, gavl_msg_t * msg)
   {
-  control_center_t * c = data;
+  control_plugin_t * p = data;
+  control_center_t * c = p->center;
   
   /* Update context ID and forward to websocket context */
   
@@ -337,9 +361,8 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
                              &ctx,
                              &var,
                              &val, NULL);
-
           
-          new_ctx = ctx_to_global(c->cur, ctx);
+          new_ctx = ctx_to_global(p, ctx);
           
           if((control = gavl_control_get_create(&c->controls, new_ctx)) &&
              (control = gavl_control_get_create(control, var)))
@@ -352,10 +375,11 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
               forward = bg_msg_sink_get(c->ctrl.evt_sink);
               gavl_msg_set_state(forward, BG_MSG_STATE_CHANGED, last, new_ctx, var, &val);
               bg_msg_sink_put(c->ctrl.evt_sink);
-              //              fprintf(stderr, "State changed: %s %s %s %s\n", ctx, new_ctx, c->cur->path, var);
-              //              gavl_value_dump(&val, 2);
-              //              fprintf(stderr, "\n");
-              
+#if 0
+              fprintf(stderr, "Controlcenter state changed: %s %s %s %s\n", ctx, new_ctx, p->path, var);
+              gavl_value_dump(&val, 2);
+              fprintf(stderr, "\n");
+#endif         
               gavl_dictionary_set(control, GAVL_CONTROL_VALUE, &val);
               
               }
@@ -376,7 +400,7 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
           gavl_dictionary_t * ctrl;
           
           ctx_id = gavl_dictionary_get_string(&msg->header, GAVL_MSG_CONTEXT_ID);
-          ctx_id_new = gavl_sprintf("%s/%s", c->cur->path, ctx_id);
+          ctx_id_new = gavl_sprintf("%s/%s", p->path, ctx_id);
           
           if((ctrl = gavl_control_get_create(&c->controls, ctx_id_new)))
             {
@@ -447,7 +471,7 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
   if(gavl_string_starts_with(uri, "http://") ||
      gavl_string_starts_with(uri, "https://"))
     {
-    /* TODO: Load link */
+    /* Load link */
     gavl_dictionary_t * parent;
     const char * label;
 
@@ -503,12 +527,21 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
       ret->c->get_controls(ret->h->priv, parent);
 
       ret->ctrl = ret->c->common.get_controllable(ret->h->priv);
-      bg_msg_hub_connect_sink(ret->ctrl->evt_hub, c->backend_sink);
+      ret->center = c;
+      
+      ret->sink = bg_msg_sink_create(handle_control_message, ret, 1);
+      
+      bg_msg_hub_connect_sink(ret->ctrl->evt_hub, ret->sink);
 
       if(!strcmp(path, "/"))
         ret->path = gavl_sprintf("/%s", id);
       else
         ret->path = gavl_sprintf("%s/%s", path, id);
+
+      ret->uri = gavl_strdup(uri);
+
+      if((ret->master = gavl_strdup(gavl_dictionary_get_string(&dict, GAVL_CONTROL_MASTER_URI))))
+        gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Got Master uri: %s", ret->master);
       
       if(gavl_control_num_children(parent) < 2)
         gavl_dictionary_set_string(parent, GAVL_META_CLASS, GAVL_META_CLASS_CONTAINER_INVISIBLE);
@@ -785,8 +818,6 @@ int controlcenter_init(control_center_t * c)
                        bg_msg_sink_create(handle_websocket_message, c, 1),
                        bg_msg_hub_create(1));
 
-  c->backend_sink = bg_msg_sink_create(handle_control_message, c, 1);
-  
   /* Initialize controls */
   load_controls(c);
   
@@ -809,8 +840,7 @@ static int update_controls(control_center_t * c)
   int ret = 0;
   for(i = 0; i < c->num_plugins; i++)
     {
-    c->cur = &c->plugins[i];
-    ret += c->cur->c->update(c->cur->h->priv);    
+    ret += c->plugins[i].c->update(c->plugins[i].h->priv);    
     }
   return ret;
   }

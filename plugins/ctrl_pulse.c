@@ -126,8 +126,8 @@ static void pa_sink_cb(pa_context *c, const pa_sink_info *l, int eol, void *user
                    pulse->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
       }
     
-    fprintf(stderr, "Sink volume: %f\n",
-            100.0 * pa_sw_volume_to_linear(pa_cvolume_avg(&l->volume)));
+    //    fprintf(stderr, "Sink volume: %f\n",
+    //            100.0 * pa_sw_volume_to_linear(pa_cvolume_avg(&l->volume)));
 
     free(id);
     }

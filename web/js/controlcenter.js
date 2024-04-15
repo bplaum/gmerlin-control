@@ -102,6 +102,8 @@ function create_connection()
     {
     var msg = msg_parse(evt.data);
 
+//    console.log("Onmessage " + JSON.stringify(msg));
+      
     switch(msg.ns)
       {
       case BG_MSG_NS_STATE:
@@ -111,8 +113,8 @@ function create_connection()
             {
             let ctrl;
             let ctx = msg.args[1].v;
-            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
-			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
+//            console.log("State changed: " + window.browser.path + " " + msg.args[1].v + "/" +
+//			  msg.args[2].v + " " + JSON.stringify(msg.args[3].v));
 
               if((ctrl = document.getElementById(msg.args[1].v + "/" + msg.args[2].v)) &&
 		 (ctrl = ctrl.el))

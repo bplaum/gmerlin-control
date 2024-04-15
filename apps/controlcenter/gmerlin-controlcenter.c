@@ -6,6 +6,7 @@
 #include <config.h>
 
 #include "controlcenter.h"
+#include <mqtt.h>
 
 #include <gmerlin/translation.h>
 #include <gmerlin/cmdline.h>
@@ -114,11 +115,14 @@ const bg_cmdline_app_data_t app_data =
 
 int main(int argc, char ** argv)
   {
+  int actions;
   gavl_time_t delay_time = GAVL_TIME_SCALE / 50; // 20 ms
   
   setlocale(LC_ALL, "");
   setlocale(LC_NUMERIC, "C");
 
+  bg_mqtt_init();
+  
   bg_handle_sigint();
   signal(SIGPIPE, SIG_IGN);
   
@@ -142,19 +146,26 @@ int main(int argc, char ** argv)
   gavl_value_set_int(&val, port);
   bg_http_server_set_parameter(srv, "port", &val);
 #endif
- 
   
   while(1)
     {
-    if(!controlcenter_iteration(&center))
-      gavl_time_delay(&delay_time);
+    actions = 0;
+    
+    actions += controlcenter_iteration(&center);
+
+    actions += bg_mqtt_update();
+
     
     if(bg_got_sigint())
       {
       fprintf(stderr, "Got sigint");
       break;
       }
+
+    if(!actions)
+      gavl_time_delay(&delay_time);
+    
     }
-  
+  bg_mqtt_cleanup();
   
   }

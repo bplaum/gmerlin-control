@@ -48,10 +48,12 @@
 #define GAVL_CONTROL_DELAY       "delay"
 
 #define GAVL_CONTROL_PATH        "Path"
+#define GAVL_CONTROL_MASTER_URI  "Master"
 
 /* Messsages */
 
 #define GAVL_MSG_NS_CONTROL 300
+#define GAVL_MSG_NS_MQTT    301
 
 /*
  *  ContextID: path
@@ -85,6 +87,11 @@
  */
 
 #define GAVL_MSG_CONTROL_IDLE            205
+
+// GAVL_MSG_NS_MQTT 
+
+#define GAVL_MSG_MQTT                    1
+
 
 void gavl_control_create_root(gavl_dictionary_t * dict);
 

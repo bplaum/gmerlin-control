@@ -28,6 +28,7 @@
 #include <gmerlin/application.h>
 #include <gmerlin/resourcemanager.h>
 #include <control.h>
+#include <mqtt.h>
 
 #define LOG_DOMAIN "gmerlin-control"
 
@@ -530,10 +531,10 @@ int main(int argc, char ** argv)
         flags |= FLAG_COMMANDS_SENT;
         }
     
-      if((flags & FLAG_IDLE) && !(flags & FLAG_MONITOR))
+      if(!(flags & FLAG_MONITOR) &&
+         (flags & FLAG_IDLE) && (!bg_mqtt_queue_len()))
         break;
-
-        
+      
       //      ret += 
     
       if(!ret)
