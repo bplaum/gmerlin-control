@@ -35,6 +35,7 @@ typedef struct
   } mqtt_t;
 
 static mqtt_t * mqtt = NULL;
+static int mqtt_error = 0;
 
 /* Callback when a message is received */
 #if 0
@@ -102,6 +103,9 @@ int bg_mqtt_init()
   int result;
   const char * host = getenv("MQTT_BROKER");
 
+  if(mqtt_error)
+    return 0;
+  
   mosquitto_lib_init();
   
   if(!host)
@@ -118,6 +122,7 @@ int bg_mqtt_init()
     gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Connection to %s:%d failed: %s",
              host, port, mosquitto_strerror(result));
     bg_mqtt_cleanup();
+    mqtt_error = 1;
     return 0;
     }
 
@@ -162,8 +167,8 @@ int bg_mqtt_update()
 int bg_mqtt_subscribe(const char * topic, bg_msg_sink_t * sink)
   {
   char * template;
-  
-  if(!mqtt && !bg_mqtt_init())
+
+  if(!mqtt && bg_mqtt_init())
     return 0;
   
   if(mqtt->num_subscriptions == mqtt->subscriptions_alloc)
@@ -195,11 +200,12 @@ void bg_mqtt_unsubscribe_by_sink(bg_msg_sink_t * sink)
     return;
   }
 
-void bg_mqtt_publish(const char * topic, gavl_buffer_t * payload, int qos, int retain)
+int bg_mqtt_publish(const char * topic, gavl_buffer_t * payload, int qos, int retain)
   {
-  if(!mqtt)
-    bg_mqtt_init();
-
+  if(!mqtt && bg_mqtt_init())
+    return 0;
+  
+  
   mosquitto_publish_v5(mqtt->m,
                        NULL,
                        topic,
@@ -209,7 +215,7 @@ void bg_mqtt_publish(const char * topic, gavl_buffer_t * payload, int qos, int r
                        NULL);
 
   mqtt->queue_len++;
-
+  return 1;
   }
 
 int bg_mqtt_queue_len()
