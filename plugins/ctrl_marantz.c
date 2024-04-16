@@ -42,6 +42,8 @@ typedef struct
 
   int status;
   gavl_socket_address_t * addr;
+  
+  char * host;
   } marantz_t;
 
 static void set_status(marantz_t * m, int status)
@@ -403,6 +405,9 @@ static void destroy_marantz(void *priv)
     gavl_socket_close(m->fd);
   
   gavl_dictionary_free(&m->state);
+
+  if(m->host)
+    free(m->host);
   
   free(m);
   }
@@ -411,34 +416,28 @@ static int open_marantz(void *priv, const char * uri)
   {
   marantz_t * m = priv;
 
-  char * host = NULL;
-  
   m->addr = gavl_socket_address_create();
 
-  if(!gavl_url_split(uri, NULL, NULL, NULL, &host, NULL, NULL))
+  if(!gavl_url_split(uri, NULL, NULL, NULL, &m->host, NULL, NULL))
     return 0;
   
-  if(!gavl_socket_address_set_async(m->addr, host,
+  if(!gavl_socket_address_set_async(m->addr, m->host,
                                     23, SOCK_STREAM))
-    {
-    free(host);
     return 0;
-    }
-
+  
   /* Queue initial poll commands */
   queue_msg(m, "ZM?\r"); // Zone 1 power
   queue_msg(m, "MV?\r"); // Master volume
   queue_msg(m, "SI?\r"); // Source
   queue_msg(m, "MS?\r"); // Surround mode?
   
-  free(host);
   set_status(m, STATUS_LOOKUP);  
   return 1;
   }
 
 static void get_controls_marantz(void * priv, gavl_dictionary_t * parent)
   {
-  //  marantz_t * m = priv;
+  marantz_t * m = priv;
   gavl_dictionary_t * ctrl;
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_POWERBUTTON,
@@ -491,7 +490,14 @@ static void get_controls_marantz(void * priv, gavl_dictionary_t * parent)
 
   gavl_control_add_option(ctrl, "M CH IN+NEURAL:X", "5/7 Channel + Neural:X");
   gavl_control_add_option(ctrl, "VIRTUAL",       "Virtual");
+
+  /* Web interface */
   
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_LINK,
+                                  "web",
+                                  "Web interface");
+  gavl_dictionary_set_string_nocopy(ctrl, GAVL_META_URI, gavl_sprintf("http://%s", m->host));
   
   }
 

@@ -331,10 +331,10 @@ function create_pulldown(ret)
       
     /* Vertical pos */
     if(parent_rect.top < window.innerHeight - parent_rect.bottom)
-      this.menu.style.top = parseInt(parent_rect.bottom) + "px";
+      this.menu.style.top = parseInt(parent_rect.bottom + window.pageYOffset) + "px";
     else
       this.menu.style.bottom = parseInt(window.innerHeight - parent_rect.top - window.pageYOffset) + "px";
-	
+      
     /* Horizontal pos */
     if(parent_rect.left < window.innerWidth / 2)
       this.menu.style.left = parseInt(parent_rect.left) + "px";

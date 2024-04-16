@@ -483,7 +483,8 @@ static void get_controls_shellybulb(void * priv, gavl_dictionary_t * parent)
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 5.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
-
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_DIGITS, 2);
+  
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_PULLDOWN,
                                   "mode",
