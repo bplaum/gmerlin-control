@@ -17,6 +17,8 @@
 #define LOG_DOMAIN "shellybulb"
 #include <control.h>
 
+#define USE_RGBCOLOR
+
 #define FLAG_ONLINE (1<<0)
 
 /* If polling takes longer than this, switch to offline */
@@ -74,12 +76,16 @@ typedef struct
   gavl_dictionary_t state;
 
   int switch_val;
+#ifdef USE_RGBCOLOR
+  gavl_value_t color;
+#else
   int red;
   int green;
   int blue;
   int gain;
   int hue;
   int saturation;
+#endif
   int brightness;
   int temperature;
 
@@ -187,11 +193,17 @@ static int handle_msg(void * data, gavl_msg_t * msg)
               s->mode = mode_white;
   
             s->effect = bg_json_dict_get_int(obj, "effect");
-  
+
+#ifdef USE_RGBCOLOR
+            s->color.v.color[0] = (double)bg_json_dict_get_int(obj, "red")/255.0;
+            s->color.v.color[1] = (double)bg_json_dict_get_int(obj, "green")/255.0;
+            s->color.v.color[2] = (double)bg_json_dict_get_int(obj, "blue")/255.0;
+#else
             s->red = bg_json_dict_get_int(obj, "red");
             s->green = bg_json_dict_get_int(obj, "green");
             s->blue = bg_json_dict_get_int(obj, "blue");
             s->gain = bg_json_dict_get_int(obj, "gain");
+#endif
             s->brightness = bg_json_dict_get_int(obj, "brightness");
             s->temperature = bg_json_dict_get_int(obj, "temp");
             
@@ -208,7 +220,10 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             bg_state_set(&s->state, 0, NULL, "switch", 
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
             gavl_value_reset(&val);
-            
+#ifdef USE_RGBCOLOR
+            bg_state_set(&s->state, 0, NULL, "color", 
+                         &s->color, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+#else
             gavl_value_set_int(&val, s->red);
             bg_state_set(&s->state, 0, NULL, "red", 
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
@@ -223,6 +238,10 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             bg_state_set(&s->state, 0, NULL, "blue", 
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
             gavl_value_reset(&val);
+            gavl_value_set_int(&val, s->gain);
+            bg_state_set(&s->state, 0, NULL, "gain", 
+                         &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+            gavl_value_reset(&val);
 
             gavl_value_set_int(&val, s->hue);
             bg_state_set(&s->state, 0, NULL, "hue", 
@@ -233,11 +252,8 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             bg_state_set(&s->state, 0, NULL, "saturation", 
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
             gavl_value_reset(&val);
+#endif
   
-            gavl_value_set_int(&val, s->gain);
-            bg_state_set(&s->state, 0, NULL, "gain", 
-                         &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
-            gavl_value_reset(&val);
 
             gavl_value_set_int(&val, s->temperature);
             bg_state_set(&s->state, 0, NULL, "temperature", 
@@ -307,6 +323,13 @@ static int handle_msg(void * data, gavl_msg_t * msg)
               s->mode = mode_white;
             s->flags |= MODE_CHANGED;
             }
+#ifdef USE_RGBCOLOR
+          else if(!strcmp(var, "color"))
+            {
+            memcpy(s->color.v.color, val.v.color, 3*sizeof(val.v.color[0]));
+            s->flags |= COLOR_CHANGED;
+            }
+#else
           else if(!strcmp(var, "red"))
             {
             s->red = val.v.i;
@@ -337,6 +360,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             s->gain = val.v.i;
             s->flags |= GAIN_CHANGED;
             }
+#endif
           else if(!strcmp(var, "temperature"))
             {
             s->temperature = val.v.i;
@@ -370,20 +394,30 @@ static int update_shellybulb(void * priv)
                  MODE_CHANGED | EFFECT_CHANGED | GAIN_CHANGED | SWITCH_CHANGED))
     {
     char * json = NULL;
-      
+#ifdef USE_RGBCOLOR      
+    json = gavl_sprintf("{ \"red\": %d, \"green\": %d, \"blue\": %d, \"gain\": 100, "
+                        "\"temp\": %d, \"brightness\": %d, \"mode\": \"%s\", \"effect\": %d, "
+                        "\"turn\": \"%s\" }",
+                        (int)(s->color.v.color[0]*255.0+0.5),
+                        (int)(s->color.v.color[1]*255.0+0.5),
+                        (int)(s->color.v.color[2]*255.0+0.5),
+                        s->temperature, s->brightness, s->mode, s->effect,
+                        (s->switch_val ? "on" : "off"));
+    fprintf(stderr, "JSON: %f,%f,%f %s\n", s->color.v.color[0], s->color.v.color[1], s->color.v.color[2], json);
+#else
     if(s->flags & HS_CHANGED)
       {
       /* HSV -> RGB */
       hsv2rgb_i(s->hue, s->saturation, 100, &s->red, &s->green, &s->blue);
       s->flags |= COLOR_CHANGED;
       }
-      
     json = gavl_sprintf("{ \"red\": %d, \"green\": %d, \"blue\": %d, \"gain\": %d, "
                         "\"temp\": %d, \"brightness\": %d, \"mode\": \"%s\", \"effect\": %d, "
                         "\"turn\": \"%s\" }",
                         s->red, s->green, s->blue, s->gain,
                         s->temperature, s->brightness, s->mode, s->effect,
                         (s->switch_val ? "on" : "off"));
+#endif
     
       
     s->flags &= ~(COLOR_CHANGED | HS_CHANGED | TEMPERATURE_CHANGED | BRIGHTNESS_CHANGED |
@@ -491,7 +525,13 @@ static void get_controls_shellybulb(void * priv, gavl_dictionary_t * parent)
                                   "Mode");
   gavl_control_add_option(ctrl, mode_color, "Color");
   gavl_control_add_option(ctrl, mode_white, "White");
-  
+
+#ifdef USE_RGBCOLOR
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_RGBCOLOR,
+                                  "color",
+                                  "Color");
+#else
   create_slider(parent, "red", "Red", 0, 255);
   create_slider(parent, "green", "Green", 0, 255);
   create_slider(parent, "blue", "Blue", 0, 255);
@@ -499,7 +539,8 @@ static void get_controls_shellybulb(void * priv, gavl_dictionary_t * parent)
 
   create_slider(parent, "hue", "Hue", 0, 360);
   create_slider(parent, "saturation", "Saturation", 0, 100);
-
+#endif
+  
   create_slider(parent, "temperature", "Temperature", 3000, 6500);
   create_slider(parent, "brightness", "Brightness", 0, 100);
   
@@ -527,7 +568,9 @@ static void * create_shellybulb()
   bg_controllable_init(&s->ctrl,
                        bg_msg_sink_create(handle_msg, s, 1),
                        bg_msg_hub_create(1));
-  
+#ifdef USE_RGBCOLOR
+  gavl_value_set_color_rgb(&s->color);
+#endif  
   return s;
   }
 
@@ -537,6 +580,9 @@ static void destroy_shellybulb(void *priv)
   bg_controllable_cleanup(&s->ctrl);
   if(s->web_uri)
     free(s->web_uri);
+#ifdef USE_RGBCOLOR
+  gavl_value_free(&s->color);
+#endif
   free(s);
   }
 

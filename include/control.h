@@ -12,7 +12,7 @@
 // #define GAVL_META_CLASS_CONTROL_SPINBUTTON  "control.spinbutton"
 // #define GAVL_META_CLASS_CONTROL_STRING      "control.string"
 // #define GAVL_META_CLASS_CONTROL_TEXT        "control.text"
-// #define GAVL_META_CLASS_CONTROL_RGBCOLOR    "control.rgbcolor"
+#define GAVL_META_CLASS_CONTROL_RGBCOLOR    "control.rgbcolor"
 
 #define GAVL_META_CLASS_CONTROL_POWERBUTTON "control.power"     //
 #define GAVL_META_CLASS_CONTROL_METER       "control.meter"

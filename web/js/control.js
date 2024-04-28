@@ -52,6 +52,8 @@ function control_get_type(dict)
       return GAVL_TYPE_STRING;
     case GAVL_META_CLASS_CONTROL_POWERBUTTON:
       return GAVL_TYPE_INT;
+    case GAVL_META_CLASS_CONTROL_RGBCOLOR:
+      return GAVL_TYPE_COLOR_RGB;
     
     }
   return null;
@@ -128,7 +130,7 @@ function create_slider(ret)
 function create_powerbutton(ret)
   {
   let table = append_dom_element(ret.parent, "table");
-  table.style = "width: 100%;"  
+  table.style = "width: 100%;"
   let tr = append_dom_element(table, "tr");
   ret.label = append_dom_element(tr, "td");
 
@@ -528,6 +530,71 @@ function create_link(ret)
     
   }
 
+function create_rgbcolor(ret)
+  {
+  let table = append_dom_element(ret.parent, "table");
+  table.style = "width: 100%;"
+
+  let tr = append_dom_element(table, "tr");
+  let td = append_dom_element(tr, "td");
+  td.style = "width: 30%;";
+  append_dom_text(td, dict_get_string(ret.dict, GAVL_META_LABEL));
+
+  td = append_dom_element(tr, "td");
+  td.style = "width: 69%;";  
+    
+  ret.input = append_dom_element(td, "input");
+  ret.input.type = "color";
+  ret.input.setAttribute("id", ret.path);
+  ret.input.el = ret;
+
+  /* Returns js array */
+  ret.hex2rgb = function(hex)
+    {
+    let ret = new Array();
+    ret[0] = parseInt(hex.slice(1, 3), 16)/255.0;
+    ret[1] = parseInt(hex.slice(3, 5), 16)/255.0;
+    ret[2] = parseInt(hex.slice(5, 7), 16)/255.0;
+    console.log("hex2rgb " + JSON.stringify(ret));
+
+    return ret;
+    }
+
+  ret.rgb2hex = function(rgb)
+    {
+    console.log("rgb2hex " + JSON.stringify(rgb));
+    let r = Math.round(rgb[0]*255.0);
+    let g = Math.round(rgb[1]*255.0);
+    let b = Math.round(rgb[2]*255.0);
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+  ret.changed = function()
+    {
+    let msg = create_set_state_msg(this.path, BG_CMD_SET_STATE);
+    msg_set_arg(msg, 3, GAVL_TYPE_COLOR_RGB, this.hex2rgb(this.input.value));
+    this.cb.handle_msg(msg);
+    }
+    
+  ret.input.onchange = function()
+    {
+    console.log("Change: " + this.value);
+    this.el.changed();
+    }
+
+  ret.input.oninput = function()
+    {
+    console.log("Input: " + this.value);
+    this.el.changed();
+    }
+
+  ret.set_value = function(val)
+    {
+    this.input.value = this.rgb2hex(val);
+    }
+
+  }
+
 function create_controlgroup(ret)
   {
   let el;
@@ -627,6 +694,9 @@ export function create(parent, dict, cb, path)
       break;
     case GAVL_META_CLASS_CONTROL_VOLUME:
       create_volume(ret);
+      break;
+    case GAVL_META_CLASS_CONTROL_RGBCOLOR:
+      create_rgbcolor(ret);
       break;
     case GAVL_META_CLASS_CONTROL_GROUP:
       create_controlgroup(ret);

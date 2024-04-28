@@ -155,9 +155,15 @@ meter {
   }
 
  
-div[data-klass="control.button"] button
+div[data-klass="control.button"] button,
+div[data-klass="control.rgbcolor"] input
   {
       height: 2em;
+  }
+
+div[data-klass="control.rgbcolor"] input
+  {
+      width: 100%;
   }
 
 /*

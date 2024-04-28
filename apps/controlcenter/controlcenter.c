@@ -864,7 +864,8 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
   {
   gavl_value_t val;
   gavl_dictionary_t * dict;
-  
+  gavl_value_t def;
+  double * rgb;
   if(!strcmp(path, "/"))
     {
 
@@ -946,6 +947,24 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
     gavl_control_set_type(dict, GAVL_TYPE_INT);
     gavl_array_splice_val_nocopy(arr, -1, 0, &val);
     gavl_value_reset(&val);
+
+    /* Color */
+    dict = gavl_value_set_dictionary(&val);
+    gavl_dictionary_set_string(dict, GAVL_META_CLASS, GAVL_META_CLASS_CONTROL_RGBCOLOR);
+    gavl_dictionary_set_string(dict, GAVL_META_ID,    "color");
+    gavl_dictionary_set_string(dict, GAVL_META_LABEL, "Color");
+    gavl_value_init(&def);
+    rgb = gavl_value_set_color_rgb(&def);
+    rgb[0] = 0.0;
+    rgb[1] = 1.0;
+    rgb[2] = 0.0;
+    gavl_dictionary_set(dict, GAVL_CONTROL_VALUE, &def);
+    gavl_value_free(&def);
+    
+    
+    gavl_array_splice_val_nocopy(arr, -1, 0, &val);
+    gavl_value_reset(&val);
+
     
     }
   
