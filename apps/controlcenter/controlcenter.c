@@ -662,14 +662,18 @@ static int handle_ctrl(bg_http_connection_t * conn, void * data)
   control_center_t * c = data;
 
   path_decoded = bg_uri_to_string(conn->path, -1);
-  
-  if(gavl_control_get(&c->controls, path_decoded))
+
+  if(path_decoded)
     {
-    bg_http_connection_send_file(conn, DATA_DIR "/web/controlcenter.html");
-    ret = 1;
+    if(gavl_control_get(&c->controls, path_decoded))
+      {
+      bg_http_connection_send_file(conn, DATA_DIR "/web/controlcenter.html");
+      ret = 1;
+      }
+  
+    free(path_decoded);
     }
   
-  free(path_decoded);
   return ret;
   }
 
