@@ -59,6 +59,30 @@ function control_get_type(dict)
   return null;
   }
 
+function control_history_push(arr, length, ts, val)
+  {
+  let i;
+  let start_time;
+  let new_element = new Object();
+  new_element.ts = ts;
+  new_element.val = val;
+
+  start_time = ts - length;
+
+  arr.push(new_element);
+    
+  for(i = 0; i < arr.length; i++)
+    {
+    if(arr[i].ts > start_time)
+      {
+      if(i >= 2)
+        arr.splice(0, i-1);
+      break;
+      }
+    }
+    
+  }
+
 /* Controls */
 
 function create_button(ret)
@@ -119,7 +143,7 @@ function create_slider(ret)
     this.el.set_label();
     }
 
-  ret.set_value = function(val)
+    ret.set_value = function(val, ts)
     {
     this.input.value = val;
     this.set_label();
@@ -163,7 +187,7 @@ function create_powerbutton(ret)
       }
     }
   
-  ret.set_value = function(val)
+  ret.set_value = function(val, ts)
     {
     this.parent.dataset.value = val;
     }
@@ -184,7 +208,7 @@ function create_meter(ret)
   if(ret.dict[GAVL_CONTROL_DIGITS])
     ret.digits  = ret.dict[GAVL_CONTROL_DIGITS].v;
   else
-    ret.digits= -1;
+    ret.digits = 0;
 
   if(ret.dict[GAVL_CONTROL_LOW])
     ret.meter.low  = ret.dict[GAVL_CONTROL_LOW].v;
@@ -211,11 +235,264 @@ function create_meter(ret)
     append_dom_text(this.label, str);
     }
     
-  ret.set_value = function(val)
+  ret.set_value = function(val, ts)
     {
     this.meter.value = val;
     this.set_label();
     }
+  }
+
+function create_curve(ret)
+  {
+  let i;
+  let history;
+  ret.label = append_dom_element(ret.parent, "div");
+ 
+  ret.canvas = append_dom_element(ret.parent, "canvas");
+  ret.canvas.el = ret;
+  ret.canvas.setAttribute("id", ret.path);
+      
+  if(ret.dict[GAVL_CONTROL_DIGITS])
+    ret.digits  = ret.dict[GAVL_CONTROL_DIGITS].v;
+  else
+    ret.digits= -1;
+
+  if(ret.dict[GAVL_CONTROL_MIN] &&
+     ret.dict[GAVL_CONTROL_MAX])
+    {
+    ret.min = ret.dict[GAVL_CONTROL_MIN].v;
+    ret.max = ret.dict[GAVL_CONTROL_MAX].v;
+    ret.autoscale = false;
+    }
+  else
+    ret.autoscale = true;
+    
+  ret.history = new Array();
+
+  /* Import history read so far */
+  history = ret.dict[GAVL_CONTROL_HISTORY].v;
+  for(i = 0; i < history.length; i++)
+    {
+    ret.history[i] = new Object();
+    ret.history[i].ts  = history[i].v[GAVL_CONTROL_TIMESTAMP].v;
+    ret.history[i].val = history[i].v[GAVL_CONTROL_VALUE].v;
+    }
+
+  ret.length = ret.dict[GAVL_CONTROL_HISTORY_LENGTH].v;
+    
+//  console.log("Got History, length: " + ret.length + " " + JSON.stringify(ret.history));
+    
+  ret.set_label = function(val)
+    {
+    let str;
+    str = dict_get_string(this.dict, GAVL_META_LABEL) + ": ";
+
+    if(this.digits > -1)
+      str += val.toFixed(this.digits);
+    else
+      str += val;
+    
+    if((val = dict_get_string(ret.dict, GAVL_CONTROL_UNIT)))
+      str += val;
+
+    clear_element(this.label);
+    append_dom_text(this.label, str);
+    }
+
+  ret.ts_to_x = function(ts)
+    {
+    let ts_norm = (ts - (this.history[this.history.length-1].ts - this.length))/this.length;
+    return this.left_margin + ts_norm * (this.canvas.width - this.left_margin - this.right_margin);
+    }
+
+  ret.val_to_y = function(val)
+    {
+    let val_norm = (val - this.val_tic_min) / (this.val_tic_max - this.val_tic_min);
+    return this.top_margin + (this.canvas.height - this.top_margin - this.bottom_margin) * (1.0 - val_norm);
+    }
+
+  ret.test_value_tics = function(delta)
+    {
+//    console.log("test_value_tics " + delta);
+
+    this.val_tic_min = Math.floor(this.min / delta);
+    this.val_tic_max = Math.ceil(this.max / delta);
+
+    this.num_value_tics = this.val_tic_max - this.val_tic_min + 1;
+    
+    this.val_tic_min *= delta;
+    this.val_tic_max *= delta;
+      
+    if(this.num_value_tics <= 7) // Maximum number of labels
+      return true;
+    else
+      return false;
+    }
+
+  ret.make_value_tics = function(ctx)
+    {
+    /* This requires this.min and this.max to be set */
+    let i;
+    let delta;
+    let delta_base;
+
+    let span = this.max - this.min;
+
+    delta = Math.pow(10.0, Math.floor(Math.log10(span * 0.3))) / 10;
+    
+    for(i = 0; i < 3; i++)
+      {
+      if(this.test_value_tics(delta) ||
+	 this.test_value_tics(delta*2.0) ||
+	 this.test_value_tics(delta*5.0))
+        break;
+      delta *= 10.0;
+      }
+
+    this.left_margin = ctx.measureText(this.val_tic_min.toFixed(this.digits)).width;
+      
+    for(i = 1; i < this.num_value_tics; i++)
+      {
+      let val = this.val_tic_min + i*((this.val_tic_max - this.val_tic_min)/(this.num_value_tics-1));
+      let str = val.toFixed(this.digits);
+      let w = ctx.measureText(str).width;
+      if(w > this.left_margin)
+	this.left_margin = w;
+      }
+    this.left_margin += 3;
+    }
+   
+  ret.draw = function()
+    {
+    const font_height = 24;
+    let i;
+
+    let ctx = this.canvas.getContext("2d");
+    this.canvas.width = this.canvas.clientWidth;
+    this.canvas.height = this.canvas.clientHeight; 
+      
+    ctx.font = font_height + "px Arial";
+//    console.log("Font: " + ctx.font);
+      
+    this.top_margin = font_height + 5;
+    this.bottom_margin = font_height + 5;
+//    this.left_margin = 2;
+    this.right_margin = 2;
+      
+
+    /* Clear area */
+    ctx.beginPath();
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
+      
+    if(this.autoscale)
+      {
+      ret.min = this.history[0].val;
+      ret.max = this.history[0].val;
+      for(i = 1; i < this.history.length; i++)
+	{
+        if(ret.min > this.history[i].val)
+          ret.min = this.history[i].val;
+        if(ret.max < this.history[i].val)
+          ret.max = this.history[i].val;
+	}
+      if(Math.abs(ret.max - ret.min) < 1.0e-6)
+        {
+        if(ret.max < 1.0)
+	  {
+          ret.min = 0.0;
+          ret.max = 1.0;
+	  }
+        else
+	  {
+          ret.min = ret.max * 0.9;
+          ret.max *= 1.1;
+	  }
+	}
+      }
+
+      
+    let gradient = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+    gradient.addColorStop(1.00, "#00ff00");
+    gradient.addColorStop(0.5,  "#ffff00");
+    gradient.addColorStop(0.0,  "#ff0000");
+    ctx.fillStyle = gradient;
+      
+    for(i = 1; i < this.history.length; i++)
+      {
+      if(ret.min > this.history[i].val)
+        ret.min = this.history[i].val;
+      if(ret.max < this.history[i].val)
+        ret.max = this.history[i].val;
+      }
+    this.make_value_tics(ctx);
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.moveTo(this.left_margin, this.canvas.width - this.bottom_margin);
+    ctx.lineTo(this.canvas.width - this.right_margin, this.canvas.width - this.bottom_margin);
+    ctx.lineTo(this.canvas.width - this.right_margin, this.top_margin);
+    ctx.lineTo(this.left_margin, this.top_margin);
+    ctx.lineTo(this.left_margin, this.canvas.width - this.bottom_margin);
+    ctx.clip();
+      
+    ctx.beginPath();
+    ctx.moveTo(this.ts_to_x(this.history[0].ts), this.canvas.height - this.bottom_margin);
+
+    for(i = 0; i < this.history.length; i++)
+      {
+      ctx.lineTo(this.ts_to_x(this.history[i].ts), this.val_to_y(this.history[i].val));
+      }
+      
+    ctx.lineTo(this.canvas.width, this.canvas.height - this.bottom_margin);
+
+    ctx.fill(); 
+
+    ctx.restore();
+
+      
+      //    ctx.fill(); 
+
+
+//    ctx.restore();
+//    console.log("Drawing val grid: " + this.val_tic_min +" " + this.val_tic_max  +" " + this.num_value_tics);
+
+    ctx.fillStyle = "#000000";
+
+      /* Draw grid lines */
+    for(i = 0; i < this.num_value_tics; i++)
+      {
+      let str;
+      let val = this.val_tic_min + i*((this.val_tic_max - this.val_tic_min)/(this.num_value_tics-1));
+      let y = this.val_to_y(val);
+      ctx.beginPath();
+      ctx.moveTo(this.left_margin, y);
+      ctx.lineTo(this.canvas.width - this.right_margin, y);
+      ctx.stroke();
+      str = val.toFixed(this.digits);
+      ctx.fillText(str, this.left_margin - ctx.measureText(str).width - 3, y + font_height / 2);
+      }
+    }
+    
+  /* Set value (as array) */
+  ret.set_value = function(val, ts)
+    {
+    if(ts == 0)
+      return;
+    console.log("curve_set_value: " + val + " " + ts + " " + this.canvas.width + " " +
+                this.canvas.height + " " + this.history.length);
+    //    this.value = val;
+    this.set_label(val);
+
+    control_history_push(this.history, this.length, ts, val);
+    this.draw();
+    }
+
+  /* Draw initial curve */
+  if(ret.history.length > 0)
+    ret.set_label(ret.history[ret.history.length-1].val);
+  ret.draw();
+    
   }
 
 function create_volume(ret)
@@ -275,7 +552,7 @@ function create_volume(ret)
       }
     }
 
-  ret.set_value = function(val)
+  ret.set_value = function(val, ts)
     {
     this.meter.value = val;
     }
@@ -428,7 +705,7 @@ function create_pulldown(ret)
       
     }
   
-  ret.set_value = function(val)
+  ret.set_value = function(val, ts)
     {
     let i;
     let found = false;
@@ -588,7 +865,7 @@ function create_rgbcolor(ret)
     this.el.changed();
     }
 
-  ret.set_value = function(val)
+  ret.set_value = function(val, ts)
     {
     this.input.value = this.rgb2hex(val);
     }
@@ -695,6 +972,9 @@ export function create(parent, dict, cb, path)
     case GAVL_META_CLASS_CONTROL_VOLUME:
       create_volume(ret);
       break;
+    case GAVL_META_CLASS_CONTROL_CURVE:
+      create_curve(ret);
+      break;
     case GAVL_META_CLASS_CONTROL_RGBCOLOR:
       create_rgbcolor(ret);
       break;
@@ -710,7 +990,6 @@ export function create(parent, dict, cb, path)
     ret.update(ret.dict);
 
   if(ret.set_value && ret.dict[GAVL_CONTROL_VALUE])
-    ret.set_value(ret.dict[GAVL_CONTROL_VALUE].v);
-
-    
+    ret.set_value(ret.dict[GAVL_CONTROL_VALUE].v, 0);
+   
   }

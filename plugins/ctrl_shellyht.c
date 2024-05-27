@@ -96,7 +96,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
                     
           const char * id = gavl_dictionary_get_string(&msg->header, GAVL_MSG_CONTEXT_ID);
           /* Got mqtt message */
-          fprintf(stderr, "Got mqtt message: %s\n", id);
+          //          fprintf(stderr, "Got mqtt message: %s\n", id);
 
           if(!(buf_val = gavl_msg_get_arg_c(msg, 0)) ||
              !(buf = gavl_value_get_binary(buf_val)))
@@ -130,7 +130,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             }
           else if(!strcmp(id, "online"))
             {
-            gavl_hexdump(buf->buf, buf->len, 16);
+            // gavl_hexdump(buf->buf, buf->len, 16);
             }
           else if(!strcmp(id, "announce"))
             {
@@ -215,30 +215,36 @@ static void get_controls_shellyht(void * priv, gavl_dictionary_t * parent)
   gavl_value_init(&val2);
   
   ctrl = gavl_control_add_control(parent,
-                                  GAVL_META_CLASS_CONTROL_METER,
+                                  GAVL_META_CLASS_CONTROL_CURVE,
                                   "temperature",
                                   "Temperature");
   gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 50.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 10.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 25.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 25.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 50.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 10.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 25.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 25.0);
   gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, (char[]){ 0xC2, 0xB0, 'C', 0x00} );
-  
+  gavl_control_init_history(ctrl, 48LL*3600*GAVL_TIME_SCALE);
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_HISTORY_PERSISTENT, 1);
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_DIGITS, 2);
+    
   ctrl = gavl_control_add_control(parent,
-                                  GAVL_META_CLASS_CONTROL_METER,
+                                  GAVL_META_CLASS_CONTROL_CURVE,
                                   "humidity",
                                   "Humidity");
   gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 100.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 20.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 90.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 40.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 100.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 20.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 90.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
+  //  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 40.0);
   gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "%" );
+  gavl_control_init_history(ctrl, 48LL*3600*GAVL_TIME_SCALE);
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_HISTORY_PERSISTENT, 1);
+  gavl_dictionary_set_int(ctrl, GAVL_CONTROL_DIGITS, 2);
   
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_METER,

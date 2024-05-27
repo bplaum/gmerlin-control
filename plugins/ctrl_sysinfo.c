@@ -373,7 +373,8 @@ static void get_controls_sysinfo(void * priv, gavl_dictionary_t * parent)
 
   gavl_value_init(&val1);
   gavl_value_init(&val2);
-  
+
+#if 0  
   ctrl = gavl_control_add_control(parent, GAVL_META_CLASS_CONTROL_METER,
                                   "load", "CPU Load");
   
@@ -386,7 +387,23 @@ static void get_controls_sysinfo(void * priv, gavl_dictionary_t * parent)
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE,   0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
+#else
+  ctrl = gavl_control_add_control(parent, GAVL_META_CLASS_CONTROL_CURVE,
+                                  "load", "CPU Load");
+  gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "%");
 
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN,     0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX,   100.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW,    50.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH,   90.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
+
+  gavl_control_init_history(ctrl, 60*GAVL_TIME_SCALE);
+  
+#endif
+
+  
   ctrl = gavl_control_add_control(parent, GAVL_META_CLASS_CONTROL_METER,
                                   "memory", "Memory usage");
   

@@ -14,7 +14,8 @@ bin_PROGRAMS = gmerlin-controlcenter
 
 gmerlin_controlcenter_SOURCES = \
 gmerlin-controlcenter.c \
-controlcenter.c
+controlcenter.c \
+curve.c
 
 gmerlin_controlcenter_LDADD = ../../lib/libgmerlin-control.la @GMERLIN_LIBS@ @GAVL_LIBS@
 

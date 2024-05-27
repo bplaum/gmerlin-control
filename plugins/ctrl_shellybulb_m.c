@@ -52,8 +52,8 @@ static const char * mode_white = "white";
 // static void rgb2hsv(float in_r, float in_g, float in_b, float * out_h, float * out_s, float * out_v);
 // static void hsv2rgb(float in_h, float in_s, float in_v, float * out_r, float * out_g, float * out_b);
 
-static void rgb2hsv_i(int in_r, int in_g, int in_b, int * out_h, int * out_s, int * out_v);
-static void hsv2rgb_i(int in_h, int in_s, int in_v, int * out_r, int * out_g, int * out_b);
+//static void rgb2hsv_i(int in_r, int in_g, int in_b, int * out_h, int * out_s, int * out_v);
+// static void hsv2rgb_i(int in_h, int in_s, int in_v, int * out_r, int * out_g, int * out_b);
 
 
 typedef struct
@@ -624,6 +624,8 @@ bg_control_plugin_t the_plugin =
    to let the plugin loader obtain the API version */
 BG_GET_PLUGIN_API_VERSION;
 
+#if 0
+
 // https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
 
 static void rgb2hsv(float in_r, float in_g, float in_b, float * out_h, float * out_s, float * out_v)
@@ -753,3 +755,5 @@ static void hsv2rgb_i(int in_h, int in_s, int in_v, int * out_r, int * out_g, in
   *out_b = FLOAT_TO_INT(b*255.0);
   
   }
+
+#endif

@@ -77,7 +77,6 @@ void gavl_control_init(gavl_dictionary_t * ctrl,
   gavl_dictionary_set_string(ctrl, GAVL_META_CLASS, klass);
   gavl_dictionary_set_string(ctrl, GAVL_META_ID, id);
   gavl_dictionary_set_string(ctrl, GAVL_META_LABEL, label);
-  
   }
 
 gavl_dictionary_t * gavl_control_add_control(gavl_dictionary_t * parent,
@@ -333,3 +332,101 @@ int gavl_control_handle_set_rel(const gavl_dictionary_t * control,
   gavl_value_move(val, &val_new);
   return ret;
   }
+
+void gavl_control_init_history(gavl_dictionary_t * control,
+                               gavl_time_t duration)
+  {
+  gavl_dictionary_set_long(control, GAVL_CONTROL_HISTORY_LENGTH, duration);
+  gavl_dictionary_get_array_create(control, GAVL_CONTROL_HISTORY);
+  }
+
+int gavl_control_append_history(gavl_dictionary_t * control,
+                                 gavl_time_t ts, const gavl_value_t * val)
+  {
+  int i;
+  
+  gavl_value_t new_val;
+  gavl_time_t length;
+  gavl_dictionary_t * dict;
+  gavl_time_t start_time;
+  gavl_array_t * history = gavl_control_get_history(control, &length);
+
+  if(!history)
+    return 0;
+
+  gavl_value_init(&new_val);
+  dict = gavl_value_set_dictionary(&new_val);
+  gavl_dictionary_set_long(dict, GAVL_CONTROL_TIMESTAMP, ts);
+  gavl_dictionary_set(dict, GAVL_CONTROL_VALUE, val);
+  
+  gavl_array_splice_val_nocopy(history, -1, 0, &new_val);
+  
+  start_time = ts - length;
+
+  for(i = 0; i < history->num_entries; i++)
+    {
+    if((dict = gavl_value_get_dictionary_nc(&history->entries[i])) &&
+       gavl_dictionary_get_long(dict, GAVL_CONTROL_TIMESTAMP, &ts) &&
+       (ts > start_time))
+      {
+      if(i >= 2)
+        gavl_array_splice_val(history, 0, i-1, NULL);
+      break;
+      }
+    }
+  
+  return 1;
+  }
+
+gavl_array_t * gavl_control_get_history(gavl_dictionary_t * control, gavl_time_t * length)
+  {
+  gavl_array_t * arr;
+
+  if(!(arr = gavl_dictionary_get_array_nc(control, GAVL_CONTROL_HISTORY)))
+    return NULL;
+
+  if(length)
+    gavl_dictionary_get_long(control, GAVL_CONTROL_HISTORY_LENGTH,
+                             length);
+  return arr;
+  }
+
+void gavl_control_foreach(gavl_dictionary_t * control, gavl_control_foreach_func func, const char * path,
+                          void * data)
+  {
+  int i;
+  gavl_array_t * arr;
+  char * sub_path;
+  gavl_dictionary_t * child;
+  const char * id = gavl_dictionary_get_string(control, GAVL_META_ID);
+
+  if(!id)
+    return;
+
+  // fprintf(stderr, "gavl_control_foreach %s %s\n", path, id);
+  
+  func(data, control, path);
+  
+  
+  if(!(arr = gavl_dictionary_get_array_nc(control, GAVL_CONTROL_CHILDREN)))
+    return;
+
+  if(!strcmp(path, "/"))
+    {
+    if(!strcmp(id, "/"))
+      sub_path = gavl_strdup("/");
+    else
+      sub_path = gavl_sprintf("/%s", id);
+    }
+  else
+    sub_path = gavl_sprintf("%s/%s", path, gavl_dictionary_get_string(control, GAVL_META_ID));
+  
+  for(i = 0; i < arr->num_entries; i++)
+    {
+    if((child = gavl_value_get_dictionary_nc(&arr->entries[i])))
+      gavl_control_foreach(child, func, sub_path, data);
+    }
+
+  free(sub_path);
+  }
+

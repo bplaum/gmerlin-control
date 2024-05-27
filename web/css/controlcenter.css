@@ -153,7 +153,6 @@ meter {
   {
   background-color: #808080;
   }
-
  
 div[data-klass="control.button"] button,
 div[data-klass="control.rgbcolor"] input
@@ -164,6 +163,12 @@ div[data-klass="control.rgbcolor"] input
 div[data-klass="control.rgbcolor"] input
   {
       width: 100%;
+  }
+
+div[data-klass="control.curve"] canvas
+  {
+      width: 100%;
+      height: 10em;
   }
 
 /*

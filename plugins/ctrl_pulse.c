@@ -79,10 +79,12 @@ static void pa_state_cb(pa_context *c, void *userdata)
     }
   }
 
+#if 0
 static void delete_device(pulse_t * pulse, const char * id)
   {
   
   }
+#endif
 
 /* Callbacks for volume and stuff */
 

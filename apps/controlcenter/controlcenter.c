@@ -5,6 +5,7 @@
 #include "controlcenter.h"
 #include <gmerlin/application.h>
 #include <gmerlin/utils.h>
+#include <gmerlin/bggavl.h>
 
 #include <gavl/log.h>
 #define LOG_DOMAIN "controlcenter"
@@ -367,13 +368,41 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
           if((control = gavl_control_get_create(&c->controls, new_ctx)) &&
              (control = gavl_control_get_create(control, var)))
             {
-            const gavl_value_t * val_old = gavl_dictionary_get(control, GAVL_CONTROL_VALUE);
+            const gavl_value_t * val_old;
 
-            if(gavl_value_compare(&val, val_old))
+            gavl_time_t ts = gavl_time_get_realtime();
+            
+            if(gavl_control_append_history(control, ts, &val) ||
+               !(val_old = gavl_dictionary_get(control, GAVL_CONTROL_VALUE)) ||
+               gavl_value_compare(&val, val_old))
               {
+              int persistent = 0;
               gavl_msg_t * forward;
               forward = bg_msg_sink_get(c->ctrl.evt_sink);
               gavl_msg_set_state(forward, BG_MSG_STATE_CHANGED, last, new_ctx, var, &val);
+              gavl_dictionary_set_long(&forward->header, GAVL_CONTROL_TIMESTAMP, ts);
+
+              /* Save history */
+              if(gavl_dictionary_get_int(control, GAVL_CONTROL_HISTORY_PERSISTENT, &persistent) &&
+                 persistent)
+                {
+                char * filename;
+                /* Save history */
+                gavl_array_t * history;
+
+                filename = get_history_file(new_ctx, var);
+                history = gavl_control_get_history(control, NULL);
+
+                if(!history)
+                  {
+                  fprintf(stderr, "History not available\n");
+                  gavl_dictionary_dump(control, 2);
+                  }
+                
+                bg_array_save_xml(history, filename, "HISTORY");
+                free(filename);
+                }
+              
               bg_msg_sink_put(c->ctrl.evt_sink);
 #if 0
               fprintf(stderr, "Controlcenter state changed: %s %s %s %s\n", ctx, new_ctx, p->path, var);
@@ -563,6 +592,33 @@ static int load_control(control_center_t * c, int *plugin_idx, const char * file
   return result;
   }
 
+static void init_foreach_func(void * data, gavl_dictionary_t * control,
+                              const char * path)
+  {
+  int persistent = 0;
+  const char * id;
+
+  id = gavl_dictionary_get_string(control, GAVL_META_ID);
+  
+  //  fprintf(stderr, "Foreach %s %s\n", path, id);
+
+  if(gavl_dictionary_get_int(control, GAVL_CONTROL_HISTORY_PERSISTENT, &persistent) &&
+     persistent)
+    {
+    char * filename = get_history_file(path, id);
+
+    gavl_array_t * history =
+      gavl_control_get_history(control, NULL);
+
+    if(bg_array_load_xml(history, filename, "HISTORY"))
+      gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Loaded history for %s/%s, %d entries",
+               path, id, history->num_entries);
+    
+    free(filename);
+    }
+  
+  }
+
 static void load_controls(control_center_t * c)
   {
   int i;
@@ -594,6 +650,9 @@ static void load_controls(control_center_t * c)
   
   free(pattern);
   free(dir);
+
+  gavl_control_foreach(&c->controls, init_foreach_func, "/", NULL);
+  
   }
 
 static int handle_ctrl(bg_http_connection_t * conn, void * data)
@@ -856,6 +915,31 @@ int controlcenter_iteration(control_center_t * c)
   return ret;
   }
 
+char * get_history_file(const char * ctx, const char * var)
+  {
+  char * ret;
+  char * path;
+  char md5[GAVL_MD5_LENGTH];
+  const char * home = getenv("HOME");
+  if(!home)
+    return NULL;
+  
+  path = gavl_sprintf("%s/%s", ctx, var);
+  
+  gavl_md5_buffer_str(path, strlen(path), md5);
+
+  ret = gavl_sprintf("%s/.local/%s/history", home, PACKAGE);
+  gavl_ensure_directory(ret, 0);
+
+  ret = gavl_strcat(ret, "/");
+  ret = gavl_strcat(ret, md5);
+  
+  free(path);
+  
+  return ret;
+  }
+
+
 /* Test mode */
 
 #ifdef TEST_CONTROLS
@@ -972,3 +1056,4 @@ static void init_controls_test(const char * path, gavl_array_t * arr)
   }
 
 #endif
+
