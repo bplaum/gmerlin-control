@@ -677,7 +677,8 @@ static int handle_ctrl(bg_http_connection_t * conn, void * data)
   return ret;
   }
 
-static const gavl_dictionary_t * find_dict_from_conn(const gavl_dictionary_t * controls, const bg_http_connection_t * conn)
+static const gavl_dictionary_t *
+find_dict_from_conn(const gavl_dictionary_t * controls, const bg_http_connection_t * conn)
   {
   char * real_path;
   char * pos;

@@ -47,10 +47,21 @@
 #define GAVL_CONTROL_DIGITS           "digits"
 #define GAVL_CONTROL_HISTORY_LENGTH   "historylength"
 #define GAVL_CONTROL_HISTORY          "history"
-#define GAVL_CONTROL_HISTORY_TIMELABEL "timelabel"
-#define GAVL_CONTROL_HISTORY_TIMELABEL_RELATIVE "relative"
-#define GAVL_CONTROL_HISTORY_TIMELABEL_TIME     "time"
-#define GAVL_CONTROL_HISTORY_TIMELABEL_DATETIME "datetime"
+
+// #define GAVL_CONTROL_HISTORY_TIMELABEL "timelabel"
+// #define GAVL_CONTROL_HISTORY_TIMELABEL_RELATIVE "relative"
+// #define GAVL_CONTROL_HISTORY_TIMELABEL_TIME     "time"
+// #define GAVL_CONTROL_HISTORY_TIMELABEL_DATETIME "datetime"
+#define GAVL_CONTROL_HISTORY_MODE "historymode"
+
+/* Used for CPU load etc */
+#define GAVL_CONTROL_HISTORY_SECONDS_RELATIVE "secs_rel"
+
+/* Used for Room temperature, humidity etc. */
+#define GAVL_CONTROL_HISTORY_CLOCK_HM "clock_hm"
+
+#define GAVL_CONTROL_HISTORY_TIME_STEP "step"
+
 #define GAVL_CONTROL_HISTORY_PERSISTENT "persistent"
 
 

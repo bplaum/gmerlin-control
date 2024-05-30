@@ -394,12 +394,14 @@ static void get_controls_sysinfo(void * priv, gavl_dictionary_t * parent)
 
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN,     0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX,   100.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW,    50.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH,   90.0);
-  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
 
   gavl_control_init_history(ctrl, 60*GAVL_TIME_SCALE);
+  gavl_dictionary_set_string(ctrl, GAVL_CONTROL_HISTORY_MODE,
+                             GAVL_CONTROL_HISTORY_SECONDS_RELATIVE);
+  gavl_dictionary_set_long(ctrl, GAVL_CONTROL_HISTORY_TIME_STEP,
+                           (int64_t)GAVL_TIME_SCALE * 10);
+  
   
 #endif
 

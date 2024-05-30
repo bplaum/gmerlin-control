@@ -242,6 +242,10 @@ function create_meter(ret)
     }
   }
 
+const CURVE_FONT_HEIGHT = 24;
+const CURVE_TIC_LENGTH  = 12;
+const CURVE_SPACING = 3;
+
 function create_curve(ret)
   {
   let i;
@@ -285,6 +289,7 @@ function create_curve(ret)
   ret.set_label = function(val)
     {
     let str;
+    let el;
     str = dict_get_string(this.dict, GAVL_META_LABEL) + ": ";
 
     if(this.digits > -1)
@@ -296,12 +301,23 @@ function create_curve(ret)
       str += val;
 
     clear_element(this.label);
-    append_dom_text(this.label, str);
+
+    el = append_dom_element(this.label, "b");
+    append_dom_text(el, str);
+
+    if((this.history.length > 0) &&
+       (this.dict[GAVL_CONTROL_HISTORY_MODE].v == GAVL_CONTROL_HISTORY_CLOCK_HM))
+      {
+      let date = new Date();
+      date.setTime(this.history[this.history.length-1].ts / 1000);
+      append_dom_text(this.label, " (Last update: " + date.toLocaleDateString() + " " + date.toLocaleTimeString() + ")");
+      }
+    
     }
 
   ret.ts_to_x = function(ts)
     {
-    let ts_norm = (ts - (this.history[this.history.length-1].ts - this.length))/this.length;
+    let ts_norm = (ts - this.time_start) / (this.time_end - this.time_start);
     return this.left_margin + ts_norm * (this.canvas.width - this.left_margin - this.right_margin);
     }
 
@@ -335,6 +351,7 @@ function create_curve(ret)
     let i;
     let delta;
     let delta_base;
+    let digits;
 
     let span = this.max - this.min;
 
@@ -349,35 +366,70 @@ function create_curve(ret)
       delta *= 10.0;
       }
 
-    this.left_margin = ctx.measureText(this.val_tic_min.toFixed(this.digits)).width;
+    if(delta < 0.1)
+      this.val_tic_digits = 2;
+    else if(delta < 1.0)
+      this.val_tic_digits = 1;
+    else
+      this.val_tic_digits = 0;
+	
+    this.left_margin = ctx.measureText(this.val_tic_min.toFixed(this.val_tic_digits)).width;
       
     for(i = 1; i < this.num_value_tics; i++)
       {
       let val = this.val_tic_min + i*((this.val_tic_max - this.val_tic_min)/(this.num_value_tics-1));
-      let str = val.toFixed(this.digits);
+      let str = val.toFixed(this.val_tic_digits);
       let w = ctx.measureText(str).width;
       if(w > this.left_margin)
 	this.left_margin = w;
       }
-    this.left_margin += 3;
+    this.left_margin += CURVE_TIC_LENGTH + CURVE_SPACING;
     }
-   
+
+  ret.draw_time_label = function(x, str, ctx)
+    {
+    ctx.fillText(str, x - ctx.measureText(str).width/2,
+                 this.canvas.height);
+    
+    }
+    
   ret.draw = function()
     {
-    const font_height = 24;
     let i;
 
     let ctx = this.canvas.getContext("2d");
     this.canvas.width = this.canvas.clientWidth;
     this.canvas.height = this.canvas.clientHeight; 
       
-    ctx.font = font_height + "px Arial";
+    ctx.font = CURVE_FONT_HEIGHT + "px Arial";
 //    console.log("Font: " + ctx.font);
       
-    this.top_margin = font_height + 5;
-    this.bottom_margin = font_height + 5;
+    this.top_margin = CURVE_FONT_HEIGHT/2;
+    this.bottom_margin = CURVE_FONT_HEIGHT + CURVE_TIC_LENGTH + CURVE_SPACING;
 //    this.left_margin = 2;
-    this.right_margin = 2;
+
+    if(this.history.length > 0)
+      this.time_end = this.history[this.history.length-1].ts;
+    else
+      this.time_end = Date.now() * 1000;
+
+   this.time_start = this.time_end - this.length;
+      
+    switch(ret.dict[GAVL_CONTROL_HISTORY_MODE].v)
+      {
+      case GAVL_CONTROL_HISTORY_SECONDS_RELATIVE:
+	{
+        this.right_margin = ctx.measureText("0").width / 2 + 1;
+	}
+	break;
+      case GAVL_CONTROL_HISTORY_CLOCK_HM:
+	{
+        this.right_margin = ctx.measureText("00:00").width / 2 + 1;
+	}
+        break;
+      }
+
+      
       
 
     /* Clear area */
@@ -409,7 +461,6 @@ function create_curve(ret)
 	  }
 	}
       }
-
       
     let gradient = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
     gradient.addColorStop(1.00, "#00ff00");
@@ -459,19 +510,91 @@ function create_curve(ret)
 
     ctx.fillStyle = "#000000";
 
-      /* Draw grid lines */
+    /* Draw horizotal grid lines and tic labels*/
     for(i = 0; i < this.num_value_tics; i++)
       {
       let str;
       let val = this.val_tic_min + i*((this.val_tic_max - this.val_tic_min)/(this.num_value_tics-1));
       let y = this.val_to_y(val);
       ctx.beginPath();
-      ctx.moveTo(this.left_margin, y);
+      ctx.moveTo(this.left_margin - CURVE_TIC_LENGTH, y);
       ctx.lineTo(this.canvas.width - this.right_margin, y);
       ctx.stroke();
-      str = val.toFixed(this.digits);
-      ctx.fillText(str, this.left_margin - ctx.measureText(str).width - 3, y + font_height / 2);
+      str = val.toFixed(this.val_tic_digits);
+      ctx.fillText(str, this.left_margin - CURVE_TIC_LENGTH - CURVE_SPACING - ctx.measureText(str).width,
+                   y + CURVE_FONT_HEIGHT / 2);
       }
+
+    /* Draw vertical grid lines and tic labels*/
+    switch(ret.dict[GAVL_CONTROL_HISTORY_MODE].v)
+      {
+      case GAVL_CONTROL_HISTORY_SECONDS_RELATIVE:
+	{
+        let t = this.time_end;
+        let x;
+        while(t >= this.time_start)
+          {
+          x = this.ts_to_x(t);
+          ctx.beginPath();
+          ctx.moveTo(x, this.top_margin);
+          ctx.lineTo(x, this.canvas.height - this.bottom_margin + CURVE_TIC_LENGTH);
+          ctx.stroke();
+          this.draw_time_label(x, ((t-this.time_end)/GAVL_TIME_SCALE).toFixed(), ctx);
+          t -= ret.dict[GAVL_CONTROL_HISTORY_TIME_STEP].v;
+          }
+	}
+	break;
+      case GAVL_CONTROL_HISTORY_CLOCK_HM:
+        {
+        let date_start;
+        let date_end;
+        let delta;
+        let t;
+
+        ctx.beginPath();
+        ctx.moveTo(this.left_margin, this.top_margin);
+        ctx.lineTo(this.left_margin, this.canvas.height - this.bottom_margin);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(this.canvas.width - this.right_margin, this.top_margin);
+          ctx.lineTo(this.canvas.width - this.right_margin,
+		     this.canvas.height - this.bottom_margin);
+        ctx.stroke();
+
+        date_end = new Date();
+        date_end.setTime(this.time_end / 1000);
+
+        date_start = new Date(date_end.getFullYear(), date_end.getMonth(), date_end.getDate() );
+
+	  
+        delta = (this.time_end - (date_start.getTime() * 1000)) %
+          this.dict[GAVL_CONTROL_HISTORY_TIME_STEP].v;
+
+        t = this.time_end - delta;
+
+        while(t >= this.time_start)
+          {
+          let str;
+          let x = this.ts_to_x(t);
+          ctx.beginPath();
+          ctx.moveTo(x, this.top_margin);
+          ctx.lineTo(x, this.canvas.height - this.bottom_margin + CURVE_TIC_LENGTH);
+          ctx.stroke();
+
+          date_end.setTime(t/1000);
+          str = ("0" + date_end.getHours()).slice(-2) + ":" + ("0" + date_end.getMinutes()).slice(-2);
+
+          this.draw_time_label(x, str, ctx);
+          t -= ret.dict[GAVL_CONTROL_HISTORY_TIME_STEP].v;
+          }
+        
+	  
+	}
+        break;
+      }
+
+      
     }
     
   /* Set value (as array) */
