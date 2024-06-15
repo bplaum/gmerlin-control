@@ -89,7 +89,7 @@ static int open_shellyplug(void * priv, const char * addr)
      !s->topic)
     return 0;
 
-  s->topic = bavl_strcat(s->topic, "/#");
+  s->topic = gavl_strcat(s->topic, "/#");
   
   bg_mqtt_subscribe(s->topic, s->ctrl.cmd_sink);
 
