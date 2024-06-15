@@ -5,6 +5,7 @@
 #include <config.h>
 
 #include <gavl/gavlsocket.h>
+#include <gavl/utils.h>
 
 #include <gmerlin/translation.h>
 #include <gmerlin/bgmsg.h>
@@ -287,8 +288,8 @@ static int update_marantz(void * priv)
       if(result > 0)
         {
         /* Connected */
-        fprintf(stderr, "Marantz connected\n");
-        m->io = gavl_io_create_socket(m->fd, 0, GAVF_IO_SOCKET_DO_CLOSE);
+        //        fprintf(stderr, "Marantz connected\n");
+        m->io = gavl_io_create_socket(m->fd, 0, GAVL_IO_SOCKET_DO_CLOSE);
         m->fd = -1;
         set_status(m, STATUS_IDLE);
         }

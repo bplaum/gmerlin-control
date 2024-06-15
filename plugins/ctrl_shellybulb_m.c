@@ -16,10 +16,9 @@
 #include <gavl/log.h>
 #define LOG_DOMAIN "shellybulb"
 #include <control.h>
+#include <gavl/utils.h>
 
 #define USE_RGBCOLOR
-
-#define FLAG_ONLINE (1<<0)
 
 /* If polling takes longer than this, switch to offline */
 #define POLL_TIMEOUT  (5*GAVL_TIME_SCALE)

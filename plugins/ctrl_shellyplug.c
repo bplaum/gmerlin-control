@@ -11,6 +11,9 @@
 #include <gavl/http.h>
 #include <gavl/log.h>
 #define LOG_DOMAIN "shellyplug"
+
+#include <gavl/utils.h>
+
 #include <control.h>
 
 #define FLAG_ONLINE (1<<0)
@@ -55,7 +58,6 @@ static void set_offline(shelly_t * s)
   s->last_poll_time = gavl_time_get_monotonic();
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s seems to be offline", s->addr);
   }
-
   
 static int handle_msg(shelly_t * s)
   {

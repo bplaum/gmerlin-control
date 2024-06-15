@@ -16,6 +16,7 @@ endif
 
 gmerlin_plugin_LTLIBRARIES = \
 ctrl_shellyplug.la \
+ctrl_shellyplugplus.la \
 ctrl_shellybulb_m.la \
 ctrl_shellyht.la \
 ctrl_command.la \
@@ -26,6 +27,9 @@ $(pulse_plugins)
 
 ctrl_shellyplug_la_SOURCES = ctrl_shellyplug.c
 ctrl_shellyplug_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
+
+ctrl_shellyplugplus_la_SOURCES = ctrl_shellyplugplus.c
+ctrl_shellyplugplus_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la
 
 ctrl_shellyht_la_SOURCES = ctrl_shellyht.c
 ctrl_shellyht_la_LIBADD = @GMERLIN_LIBS@ ../lib/libgmerlin-control.la

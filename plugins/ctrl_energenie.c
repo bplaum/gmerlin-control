@@ -14,6 +14,7 @@
 #include <gavl/http.h>
 #include <gavl/log.h>
 #define LOG_DOMAIN "energenie"
+#include <gavl/utils.h>
 
 #define STATE_IDLE      0
 #define STATE_POLL      1
@@ -151,6 +152,7 @@ static void set_offline(energenie_t * e)
   reset_req_body(e);
   e->flags &= ~FLAG_LOGGED_IN;
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Energenie %s is now offline", e->addr);
+  e->last_poll_time = gavl_time_get_monotonic();
   }
 
 static int login_complete(energenie_t * e)

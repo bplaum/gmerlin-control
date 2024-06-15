@@ -9,6 +9,7 @@
 
 #include <gavl/log.h>
 #define LOG_DOMAIN "command"
+#include <gavl/utils.h>
 
 #include <control.h>
 

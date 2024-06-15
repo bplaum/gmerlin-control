@@ -206,7 +206,7 @@ static int http_send_request(gavl_dictionary_t * request,
     goto fail;
 
   if(!io)
-    io = gavl_io_create_socket(fd, 30000, GAVF_IO_SOCKET_DO_CLOSE);
+    io = gavl_io_create_socket(fd, 30000, GAVL_IO_SOCKET_DO_CLOSE);
   
   if(req_body)
     {

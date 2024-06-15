@@ -16,6 +16,7 @@
 #include <gavl/log.h>
 #define LOG_DOMAIN "shellyht"
 #include <control.h>
+#include <gavl/utils.h>
 
 #define FLAG_ONLINE (1<<0)
 
