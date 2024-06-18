@@ -491,12 +491,6 @@ static gavl_dictionary_t * create_slider(gavl_dictionary_t * parent,
 static void get_controls_shellybulb(void * priv, gavl_dictionary_t * parent)
   {
   gavl_dictionary_t * ctrl;
-  gavl_value_t val1, val2;
-  //  shelly_t * s = priv;
-
-  gavl_value_init(&val1);
-  gavl_value_init(&val2);
-  
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_POWERBUTTON,
                                   "switch",

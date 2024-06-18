@@ -47,6 +47,7 @@
 #define GAVL_CONTROL_DIGITS           "digits"
 #define GAVL_CONTROL_HISTORY_LENGTH   "historylength"
 #define GAVL_CONTROL_HISTORY          "history"
+#define GAVL_CONTROL_DISABLED         "disabled"
 
 // #define GAVL_CONTROL_HISTORY_TIMELABEL "timelabel"
 // #define GAVL_CONTROL_HISTORY_TIMELABEL_RELATIVE "relative"

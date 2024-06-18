@@ -1,7 +1,12 @@
 #define _GNU_SOURCE
 
+#include <string.h>
+
+
 #include <config.h>
 #include <mqtt.h>
+#include <shellyrpc.h>
+
 #include <gmerlin/translation.h>
 
 #include <gmerlin/plugin.h>
@@ -16,10 +21,38 @@
 
 typedef struct
   {
-  //  gavl_io_t * io;
   bg_controllable_t ctrl;
-  char * topic;
+  shelly_rpc_t r;
+  char * dev;
+  gavl_dictionary_t state;
   } shelly_t;
+
+static void update_status(void * data, const char * name, const gavl_dictionary_t * dict)
+  {
+  const gavl_value_t * val;
+  shelly_t * s = data;
+  
+  if(!strcmp(name, "switch:0"))
+    {
+    if((val = gavl_dictionary_get(dict, "output")))
+      bg_state_set(&s->state, 1, NULL, "switch", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+
+    if((val = gavl_dictionary_get(dict, "apower")))
+      bg_state_set(&s->state, 1, NULL, "power", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+
+    if((val = gavl_dictionary_get(dict, "voltage")))
+      bg_state_set(&s->state, 1, NULL, "voltage", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+
+    if((val = gavl_dictionary_get(dict, "current")))
+      bg_state_set(&s->state, 1, NULL, "current", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+    
+    }
+     
+  }
 
 static int handle_msg(void * data, gavl_msg_t * msg)
   {
@@ -27,31 +60,6 @@ static int handle_msg(void * data, gavl_msg_t * msg)
   
   switch(msg->NS)
     {
-    case GAVL_MSG_NS_MQTT:
-      {
-      switch(msg->ID)
-        {
-        case GAVL_MSG_MQTT:
-          {
-          //          gavl_value_t val;
-          const gavl_value_t  * buf_val;
-          const gavl_buffer_t * buf;
-                    
-          const char * id = gavl_dictionary_get_string(&msg->header, GAVL_MSG_CONTEXT_ID);
-          /* Got mqtt message */
-
-          if(!(buf_val = gavl_msg_get_arg_c(msg, 0)) ||
-             !(buf = gavl_value_get_binary(buf_val)))
-            {
-            /* Error */
-            return 1;
-            }
-
-          fprintf(stderr, "Got mqtt message: %s %s\n", id, (char*)buf->buf);
-          }
-        }
-      }
-      break;
     case BG_MSG_NS_STATE:
       switch(msg->ID)
         {
@@ -70,7 +78,35 @@ static int handle_msg(void * data, gavl_msg_t * msg)
                              &ctx,
                              &var,
                              &val, NULL);
-          
+
+          if(!strcmp(var, "switch"))
+            {
+            int on = 0;
+            int delay = 0;
+            char * args = NULL;
+            
+            gavl_value_get_int(&val, &on);
+
+            fprintf(stderr, "set_switch: %d\n", on);
+
+            gavl_dictionary_get_int(&msg->header, 
+                                    GAVL_CONTROL_DELAY, &delay);
+
+            if(delay > 0)
+              {
+              args = gavl_sprintf("{ \"id\": 0, \"on\":%s, \"toggle_after\":%d}",
+                                  (on ? "false" : "true"), delay);
+              }
+            else
+              {
+              args = gavl_sprintf("{ \"id\": 0, \"on\":%s}", (on ? "true" : "false"));
+              }
+            
+            shellyrpc_call_method(&s->r, 0, "Switch.Set", args);
+            free(args);
+            }
+
+          gavl_value_free(&val);
           break;
           }
         }
@@ -82,44 +118,27 @@ static int handle_msg(void * data, gavl_msg_t * msg)
 
 static int open_shellyplug(void * priv, const char * addr)
   {
+  
   //  gavl_buffer_t buf;
   shelly_t * s = priv;
 
-  if(!gavl_url_split(addr, NULL, NULL, NULL, &s->topic, NULL, NULL) ||
-     !s->topic)
+  if(!gavl_url_split(addr, NULL, NULL, NULL, &s->dev, NULL, NULL) ||
+     !s->dev)
     return 0;
 
-  s->topic = gavl_strcat(s->topic, "/#");
-  
-  bg_mqtt_subscribe(s->topic, s->ctrl.cmd_sink);
+  shelly_rpc_init(&s->r, &s->ctrl, s->dev);
 
-  /* Request announcement */
-#if 0  
-  topic = gavl_sprintf("%s/command", s->topic);
-  
-  gavl_buffer_init(&buf);
-  buf.buf = (uint8_t*)"announce";
-  buf.len = strlen((const char*)buf.buf);
-  
-  fprintf(stderr, "Publishing: %s\n", topic);
-  
-  bg_mqtt_publish(topic, &buf, 1, 0);
-#endif
+  s->r.update_status = update_status;
+  s->r.data = s;
   
   return 1;
 
   }
 
-
 static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   {
   gavl_dictionary_t * ctrl;
-  gavl_value_t val1, val2;
-  //  shelly_t * s = priv;
-
-  gavl_value_init(&val1);
-  gavl_value_init(&val2);
-  
+    
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_POWERBUTTON,
                                   "switch",
@@ -133,10 +152,42 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
                                   "Power");
   gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "W");
   gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
+
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 2500.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 100.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 1000.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
+
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_METER,
+                                  "voltage",
+                                  "Voltage");
+  gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "V");
+  gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
+
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 250.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 220.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 240.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 230.0);
+
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_METER,
+                                  "current",
+                                  "Current");
+  gavl_dictionary_set_string(ctrl, GAVL_CONTROL_UNIT, "A");
+  gavl_control_set_type(ctrl, GAVL_TYPE_FLOAT);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_DIGITS, 2);
+
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MIN, 0.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_MAX, 16.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_LOW, 1.0);
+  gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 10.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
   }
@@ -148,9 +199,7 @@ static void * create_shellyplug()
   bg_controllable_init(&s->ctrl,
                        bg_msg_sink_create(handle_msg, s, 1),
                        bg_msg_hub_create(1));
-#ifdef USE_RGBCOLOR
-  gavl_value_set_color_rgb(&s->color);
-#endif  
+
   return s;
   }
 

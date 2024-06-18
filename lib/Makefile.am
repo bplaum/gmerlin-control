@@ -6,7 +6,8 @@ lib_LTLIBRARIES = libgmerlin-control.la
 
 libgmerlin_control_la_SOURCES = \
 control.c \
-mqtt.c
+mqtt.c \
+shellyrpc.c
 
 libgmerlin_control_la_LIBADD = @MOSQUITTO_LIBS@ \
   @GAVL_LIBS@ \
