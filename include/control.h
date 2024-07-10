@@ -2,6 +2,7 @@
 
 #include <gavl/gavl.h>
 #include <gavl/value.h>
+#include <gmerlin/bgmsg.h>
 
 /* Types of control elements */
 
@@ -47,7 +48,7 @@
 #define GAVL_CONTROL_DIGITS           "digits"
 #define GAVL_CONTROL_HISTORY_LENGTH   "historylength"
 #define GAVL_CONTROL_HISTORY          "history"
-#define GAVL_CONTROL_DISABLED         "disabled"
+#define GAVL_CONTROL_OFFLINE          "offline"
 
 // #define GAVL_CONTROL_HISTORY_TIMELABEL "timelabel"
 // #define GAVL_CONTROL_HISTORY_TIMELABEL_RELATIVE "relative"
@@ -155,6 +156,7 @@ gavl_dictionary_t * gavl_control_get_option(gavl_dictionary_t * ctrl, const char
 
 void gavl_control_delete_option(gavl_dictionary_t * ctrl, const char * id);
 
+void gavl_control_set_online(bg_msg_sink_t * sink, const char * id, int online);
 
 const gavl_dictionary_t * gavl_control_get(const gavl_dictionary_t * root, const char * path);
 gavl_dictionary_t * gavl_control_get_create(gavl_dictionary_t * dict, const char * path);

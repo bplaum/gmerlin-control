@@ -20,17 +20,6 @@
 
 #define USE_RGBCOLOR
 
-/* If polling takes longer than this, switch to offline */
-#define POLL_TIMEOUT  (5*GAVL_TIME_SCALE)
-#define POLL_INTERVAL (5*GAVL_TIME_SCALE)
-
-/*
-#define STATE_IDLE     0
-#define STATE_POLL     1
-#define STATE_SETTINGS 2
-#define STATE_COMMAND  3
-#define STATE_OFFLINE  4
-*/
 
 /* Flags */
 
@@ -42,6 +31,7 @@
 #define MODE_CHANGED        (1<<5)
 #define EFFECT_CHANGED      (1<<6)
 #define SWITCH_CHANGED      (1<<7)
+// #define FLAG_INIT           (1<<8)
 
 // #define SWITCH_CHANGED (1<<1)
 
@@ -71,6 +61,7 @@ typedef struct
   int flags;
   
   char * topic;
+  char * dev;
   
   gavl_dictionary_t state;
 
@@ -154,17 +145,23 @@ static int handle_msg(void * data, gavl_msg_t * msg)
           else if(!strcmp(id, "announce"))
             {
             const char * ip;
+            const char * dev;
             json_object * obj;
             //            gavl_hexdump(buf->buf, buf->len, 16);
             obj = json_tokener_parse((const char*)buf->buf);
 
+            if(!(dev = bg_json_dict_get_string(obj, "id")) ||
+               strcmp(dev, s->dev))
+              return 1;
+            
             ip = bg_json_dict_get_string(obj, "ip");
 
             if(ip)
               {
               char * addr;
               addr = gavl_sprintf("http://%s", ip);
-              fprintf(stderr, "Got shellybulb address: %s\n", addr);
+
+              // fprintf(stderr, "Got shellybulb address: %s\n", addr);
 
               if(!s->web_uri || strcmp(s->web_uri, addr))
                 s->web_uri = gavl_strrep(s->web_uri, addr);
@@ -175,6 +172,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             if(obj)
               json_object_put(obj);
             
+            gavl_control_set_online(s->ctrl.evt_sink, "/", 1);
             }
           else if(!strcmp(id, "color/0/status"))
             {
@@ -283,6 +281,20 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             /* on or off */
             
             }
+          else if(!strcmp(id, "online"))
+            {
+            if(!strcmp((const char*)buf->buf, "true"))
+              {
+              //              fprintf(stderr, "shellybulb is online\n");
+              gavl_control_set_online(s->ctrl.evt_sink, "/", 1);
+              }
+            else
+              {
+              //              fprintf(stderr, "shellybulb is offline\n");
+              gavl_control_set_online(s->ctrl.evt_sink, "/", 0);
+              }
+            }
+          
           break;
           }
         }
@@ -448,6 +460,7 @@ static int open_shellybulb(void * priv, const char * addr)
   char * path = NULL;
   shelly_t * s = priv;
   char * topic;
+  const char * pos;
 
   if(!gavl_url_split(addr, NULL, NULL, NULL, NULL, NULL, &path) ||
      !path)
@@ -456,8 +469,14 @@ static int open_shellybulb(void * priv, const char * addr)
   s->topic = gavl_strdup(path+1);
   free(path);
 
-  bg_mqtt_subscribe(s->topic, s->ctrl.cmd_sink);
+  if(!(pos = strrchr(s->topic, '/')))
+    return 0;
 
+  s->dev = gavl_strdup(pos+1);
+  
+  bg_mqtt_subscribe(s->topic, s->ctrl.cmd_sink);
+  
+  
   /* Request announcement */
   
   topic = gavl_sprintf("%s/command", s->topic);
@@ -469,6 +488,8 @@ static int open_shellybulb(void * priv, const char * addr)
   fprintf(stderr, "Publishing: %s\n", topic);
   
   bg_mqtt_publish(topic, &buf, 1, 0);
+
+  //  gavl_control_set_online(s->ctrl.evt_sink, "/", 0);
   
   return 1;
   }
@@ -573,6 +594,10 @@ static void destroy_shellybulb(void *priv)
   bg_controllable_cleanup(&s->ctrl);
   if(s->web_uri)
     free(s->web_uri);
+  if(s->topic)
+    free(s->topic);
+  if(s->dev)
+    free(s->dev);
 #ifdef USE_RGBCOLOR
   gavl_value_free(&s->color);
 #endif

@@ -26,6 +26,7 @@ const GAVL_CONTROL_OPTIMUM = "optimum";
 const GAVL_CONTROL_DIGITS = "digits";
 const GAVL_CONTROL_HISTORY_LENGTH = "historylength";
 const GAVL_CONTROL_HISTORY = "history";
+const GAVL_CONTROL_OFFLINE = "offline";
 const GAVL_CONTROL_HISTORY_MODE = "historymode";
 const GAVL_CONTROL_HISTORY_SECONDS_RELATIVE = "secs_rel";
 const GAVL_CONTROL_HISTORY_CLOCK_HM = "clock_hm";

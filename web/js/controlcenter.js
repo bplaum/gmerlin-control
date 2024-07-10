@@ -137,6 +137,32 @@ function create_connection()
 	    window.browser.path = dict_get_string(msg.header, GAVL_MSG_CONTEXT_ID);
             window.browser.set_children(msg.args[0].v);
 	    break;
+          case GAVL_MSG_CONTROL_CHANGED:
+	    {
+            let el;
+            let id = dict_get_string(msg.header, GAVL_MSG_CONTEXT_ID);
+            console.log("Control changed " + id + " " + JSON.stringify(msg.args[0].v));
+
+            if(!(el = document.getElementById(id)))
+              return;
+	      
+            if(el.update)
+              el.update(msg.args[0].v);
+
+            if(msg.args[0].v && msg.args[0].v[GAVL_CONTROL_OFFLINE] &&
+               (msg.args[0].v[GAVL_CONTROL_OFFLINE].v == 1))
+	      {
+	      console.log("Control " + id + " " + "is now offline");
+              el.parentElement.dataset.offline = "true";
+	      }
+	    else
+	      {
+              console.log("Control " + id + " " + "is now online");
+              el.parentElement.dataset.offline = "false";
+	      }
+		
+	    break;
+	    }
 	  }
 	break;
       }

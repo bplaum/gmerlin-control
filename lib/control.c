@@ -307,7 +307,7 @@ int gavl_control_handle_set_rel(const gavl_dictionary_t * control,
     else
       gavl_value_set_int(&val_new, 1);
 
-    fprintf(stderr, "Powerbutton: (ctx: %s, var: %s) %d\n", ctx, var, val_new.v.i);
+    // fprintf(stderr, "Powerbutton: (ctx: %s, var: %s) %d\n", ctx, var, val_new.v.i);
     
     ret = 1;
     }
@@ -430,3 +430,21 @@ void gavl_control_foreach(gavl_dictionary_t * control, gavl_control_foreach_func
   free(sub_path);
   }
 
+void gavl_control_set_online(bg_msg_sink_t * sink, const char * id, int online)
+  {
+  gavl_dictionary_t dict;
+  gavl_msg_t * msg;
+  gavl_dictionary_init(&dict);
+
+  msg = bg_msg_sink_get(sink);
+
+  gavl_msg_set_id_ns(msg, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+  gavl_dictionary_set_string(&msg->header, GAVL_MSG_CONTEXT_ID, id);
+  
+  gavl_dictionary_set_int(&dict, GAVL_CONTROL_OFFLINE, !online);
+  
+  gavl_msg_set_arg_dictionary(msg, 0, &dict);
+  
+  bg_msg_sink_put(sink);
+  gavl_dictionary_free(&dict);
+  }

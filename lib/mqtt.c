@@ -168,13 +168,14 @@ int bg_mqtt_subscribe(const char * topic, bg_msg_sink_t * sink)
   {
   char * template;
 
-  if(!mqtt && bg_mqtt_init())
+  if(!mqtt && !bg_mqtt_init())
     return 0;
   
   if(mqtt->num_subscriptions == mqtt->subscriptions_alloc)
     {
     mqtt->subscriptions_alloc += 32;
-    mqtt->subscriptions = realloc(mqtt->subscriptions, mqtt->subscriptions_alloc * sizeof(*mqtt->subscriptions));
+    mqtt->subscriptions = realloc(mqtt->subscriptions,
+                                  mqtt->subscriptions_alloc * sizeof(*mqtt->subscriptions));
     memset(mqtt->subscriptions + mqtt->num_subscriptions, 0,
            (mqtt->subscriptions_alloc - mqtt->num_subscriptions)*sizeof(*mqtt->subscriptions));
     }
@@ -202,9 +203,8 @@ void bg_mqtt_unsubscribe_by_sink(bg_msg_sink_t * sink)
 
 int bg_mqtt_publish(const char * topic, gavl_buffer_t * payload, int qos, int retain)
   {
-  if(!mqtt && bg_mqtt_init())
+  if(!mqtt && !bg_mqtt_init())
     return 0;
-  
   
   mosquitto_publish_v5(mqtt->m,
                        NULL,

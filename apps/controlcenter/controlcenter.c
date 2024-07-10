@@ -425,11 +425,15 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
         case GAVL_MSG_CONTROL_CHANGED:
           {
           const char * ctx_id;
-          char * ctx_id_new;
+          char * ctx_id_new = NULL;
           gavl_dictionary_t * ctrl;
-          
+
           ctx_id = gavl_dictionary_get_string(&msg->header, GAVL_MSG_CONTEXT_ID);
-          ctx_id_new = gavl_sprintf("%s/%s", p->path, ctx_id);
+
+          if(!strcmp(ctx_id, "/"))
+            ctx_id_new = gavl_strdup(p->path);
+          else
+            ctx_id_new = gavl_sprintf("%s/%s", p->path, ctx_id);
           
           if((ctrl = gavl_control_get_create(&c->controls, ctx_id_new)))
             {
@@ -447,10 +451,21 @@ static int handle_control_message(void * data, gavl_msg_t * msg)
             if((val = gavl_msg_get_arg_c(msg, 0)) &&
                (dict = gavl_value_get_dictionary(val)))
               gavl_dictionary_update_fields(ctrl, dict);
+
+            //            fprintf(stderr, "Got control %s\n", ctx_id_new);
+            //            gavl_dictionary_dump(dict, 2);
+            //            fprintf(stderr, "\n");
+
+            /* Forward */
+            gavl_dictionary_set_string(&msg->header, GAVL_MSG_CONTEXT_ID, ctx_id_new);
+            bg_msg_sink_put_copy(c->ctrl.evt_sink, msg);
             }
           else
             fprintf(stderr, ":(\n");
-            
+
+          if(ctx_id_new)
+            free(ctx_id_new);
+          
           }
           break;
         }

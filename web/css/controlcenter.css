@@ -69,12 +69,10 @@ fieldset
   margin-bottom: 5px;
   }
 
-/* div#browser > div,
-fieldset > div
+div#browser > div
   {
-  padding: 10px;
+  position: relative;
   }
-*/
 
 .widget
   {
@@ -170,6 +168,24 @@ div[data-klass="control.curve"] canvas
       width: 100%;
       height: 10em;
   }
+
+.disabler
+  {
+      position: absolute;
+      left: 0px;
+      right: 0px;
+      top: 0px;
+      bottom: 0px;
+      z-index: 100;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: none;
+  }
+
+div[data-offline="true"] > .disabler
+  {
+      display: block;
+  }
+
 
 /*
 

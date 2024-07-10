@@ -22,8 +22,9 @@
 #define STATE_COMMAND   3
 #define STATE_OFFLINE   4
 
-#define FLAG_LOGGED_IN   (1<<0)
+#define FLAG_LOGGED_IN    (1<<0)
 #define FLAG_HAVE_LABELS  (1<<1)
+#define FLAG_ONLINE       (1<<2)
 
 typedef struct
   {
@@ -150,11 +151,20 @@ static void set_offline(energenie_t * e)
   e->status = STATE_OFFLINE;
   reset_connection(e);
   reset_req_body(e);
-  e->flags &= ~FLAG_LOGGED_IN;
+  e->flags &= ~(FLAG_LOGGED_IN|FLAG_ONLINE);
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Energenie %s is now offline", e->addr);
   e->last_poll_time = gavl_time_get_monotonic();
+  gavl_control_set_online(e->ctrl.evt_sink, "/", 0);
   }
 
+static void set_online(energenie_t * e)
+  {
+  if(e->flags & FLAG_ONLINE)
+    return;
+  
+  e->flags |= FLAG_ONLINE;
+  gavl_control_set_online(e->ctrl.evt_sink, "/", 1);
+  }
 static int login_complete(energenie_t * e)
   {
   int result = gavl_http_client_run_async_done(e->io, 0);
@@ -175,6 +185,8 @@ static int login_complete(energenie_t * e)
       }
     
     e->flags |= FLAG_LOGGED_IN;
+    set_online(e);
+    
     reset_req_body(e);
     return 1;
     }

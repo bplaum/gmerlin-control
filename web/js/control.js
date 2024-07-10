@@ -1001,6 +1001,10 @@ function create_controlgroup(ret)
   let children;
   let i; 
   let cg = append_dom_element(ret.parent, "fieldset");
+
+  cg.el = ret;
+  cg.setAttribute("id", ret.path);
+
   el = append_dom_element(cg, "legend");
   append_dom_text(el, dict_get_string(ret.dict, GAVL_META_LABEL));
 
@@ -1046,12 +1050,16 @@ function create_invisible(ret)
  */
 
 export function create(parent, dict, cb, path)
-  {
+{
+  let disabler;
   let ret = new Object();
   let klass = dict_get_string(dict, GAVL_META_CLASS);
 
 //  console.log("Create control: " + path + " " + JSON.stringify(dict));
 
+  disabler = append_dom_element(parent, "div");
+  disabler.setAttribute("class", "disabler");
+  
   parent.dataset.klass = dict_get_string(dict, GAVL_META_CLASS);
   
   ret.parent = parent;
@@ -1109,6 +1117,18 @@ export function create(parent, dict, cb, path)
       break;
     }
 
+  if(ret.dict[GAVL_CONTROL_OFFLINE] &&
+     ret.dict[GAVL_CONTROL_OFFLINE].v == 1)
+    {
+    console.log("Control " + path + " " + "is offline");
+    parent.dataset.offline = "true";
+    }
+  else
+    {
+    console.log("Control " + path + " " + "is online");
+    parent.dataset.offline = "false";
+    }
+  
   if(ret.update)
     ret.update(ret.dict);
 

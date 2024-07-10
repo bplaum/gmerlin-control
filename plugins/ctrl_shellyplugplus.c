@@ -25,7 +25,22 @@ typedef struct
   shelly_rpc_t r;
   char * dev;
   gavl_dictionary_t state;
+  char * web_uri;
   } shelly_t;
+
+static void update_web_uri(shelly_t * s)
+  {
+  gavl_msg_t * msg;
+  gavl_dictionary_t dict;
+  gavl_dictionary_init(&dict);
+  gavl_dictionary_set_string(&dict, GAVL_META_URI, s->web_uri);
+  msg = bg_msg_sink_get(s->ctrl.evt_sink);
+  gavl_msg_set_id_ns(msg, GAVL_MSG_CONTROL_CHANGED, GAVL_MSG_NS_CONTROL);
+  gavl_dictionary_set_string(&msg->header, GAVL_MSG_CONTEXT_ID, "web");
+  gavl_msg_set_arg_dictionary(msg, 0, &dict);
+  bg_msg_sink_put(s->ctrl.evt_sink);
+  gavl_dictionary_free(&dict);
+  }
 
 static void update_status(void * data, const char * name, const gavl_dictionary_t * dict)
   {
@@ -51,7 +66,27 @@ static void update_status(void * data, const char * name, const gavl_dictionary_
                    val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
     
     }
-     
+  else if(!strcmp(name, "wifi"))
+    {
+    const char * ip;
+
+    char * addr;
+
+    if((ip = gavl_dictionary_get_string(dict, "sta_ip")))
+      {
+      addr = gavl_sprintf("http://%s", ip);
+
+      // fprintf(stderr, "Got shellyplugplus address: %s\n", addr);
+      
+      if(!s->web_uri || strcmp(s->web_uri, addr))
+        s->web_uri = gavl_strrep(s->web_uri, addr);
+      update_web_uri(s);
+        
+      free(addr);
+      }
+    
+    }
+  
   }
 
 static int handle_msg(void * data, gavl_msg_t * msg)
@@ -87,7 +122,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             
             gavl_value_get_int(&val, &on);
 
-            fprintf(stderr, "set_switch: %d\n", on);
+            // fprintf(stderr, "set_switch: %d\n", on);
 
             gavl_dictionary_get_int(&msg->header, 
                                     GAVL_CONTROL_DELAY, &delay);
@@ -114,7 +149,6 @@ static int handle_msg(void * data, gavl_msg_t * msg)
     }
   return 1;
   }
-
 
 static int open_shellyplug(void * priv, const char * addr)
   {
@@ -190,6 +224,12 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 10.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
+
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_LINK,
+                                  "web",
+                                  "Web interface");
+  gavl_dictionary_set_string(parent, GAVL_META_URI, "#");
   }
 
 static void * create_shellyplug()
@@ -203,18 +243,16 @@ static void * create_shellyplug()
   return s;
   }
 
-
 static void destroy_shellyplug(void *priv)
   {
   shelly_t * s = priv;
   bg_controllable_cleanup(&s->ctrl);
-  //  if(s->web_uri)
-  //    free(s->web_uri);
+  if(s->web_uri)
+    free(s->web_uri);
+  if(s->dev)
+    free(s->dev);
   free(s);
   }
-
-
-
 
 static bg_controllable_t * get_controllable_shellyplug(void * priv)
   {

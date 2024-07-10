@@ -12,6 +12,8 @@ typedef struct
   /* Status updates */
   void (*update_status)(void * data, const char * name, const gavl_dictionary_t * dict);
   void * data;
+
+  bg_controllable_t * ctrl;
   
   } shelly_rpc_t;
 

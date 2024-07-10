@@ -11,6 +11,7 @@
 static const char * status_names[] =
   {
     "switch:0",
+    "wifi",
     NULL
   };
 
@@ -20,6 +21,13 @@ static void report_status(shelly_rpc_t * r,
   const gavl_dictionary_t * dict;
   int i = 0; 
 
+#if 0
+  fprintf(stderr, "Got status:\n");
+  gavl_dictionary_dump(parent, 2);
+  fprintf(stderr, "\n");
+#endif
+
+  
   while(status_names[i])
     {
     if((dict = gavl_dictionary_get_dictionary(parent, status_names[i])))
@@ -61,11 +69,12 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
     if(!strcmp((const char*)buf->buf, "true"))
       {
       fprintf(stderr, "Device is online\n");
+      gavl_control_set_online(r->ctrl->evt_sink, "/", 1);
       }
     else
       {
       fprintf(stderr, "Device is offline\n");
-
+      gavl_control_set_online(r->ctrl->evt_sink, "/", 0);
       }
     }
   else if(gavl_string_starts_with(topic, "status/"))
@@ -140,6 +149,7 @@ void shelly_rpc_init(shelly_rpc_t * r, bg_controllable_t * ctrl, const char * de
   uuid_unparse(u, r->client_id);
   r->sink = bg_msg_sink_create(handle_mqtt, r, 1);
   r->dev = device;
+  r->ctrl = ctrl;
   
   bg_mqtt_subscribe(device, r->sink);
   bg_mqtt_subscribe(r->client_id, r->sink);
@@ -174,7 +184,7 @@ void shellyrpc_call_method(shelly_rpc_t * r,
   buf.buf = (uint8_t*)cmd;
   buf.len = strlen(cmd);
   
-  fprintf(stderr, "Publishing: %s %s\n", topic, cmd);
+  //  fprintf(stderr, "Publishing: %s %s\n", topic, cmd);
   
   bg_mqtt_publish(topic, &buf, 1, 0);
   
