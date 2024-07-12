@@ -68,12 +68,14 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
     /* true or false */
     if(!strcmp((const char*)buf->buf, "true"))
       {
-      fprintf(stderr, "Device is online\n");
+      //      fprintf(stderr, "Device is online\n");
       gavl_control_set_online(r->ctrl->evt_sink, "/", 1);
+      
+      shellyrpc_call_method(r, GET_STATUS_ID, "Shelly.GetStatus", NULL);
       }
     else
       {
-      fprintf(stderr, "Device is offline\n");
+      //      fprintf(stderr, "Device is offline\n");
       gavl_control_set_online(r->ctrl->evt_sink, "/", 0);
       }
     }

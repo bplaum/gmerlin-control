@@ -15,7 +15,7 @@
 
 #include <gavl/http.h>
 #include <gavl/log.h>
-#define LOG_DOMAIN "shellybulb"
+#define LOG_DOMAIN "shellyplugplus"
 #include <control.h>
 #include <gavl/utils.h>
 
@@ -172,7 +172,9 @@ static int open_shellyplug(void * priv, const char * addr)
 static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   {
   gavl_dictionary_t * ctrl;
-    
+  
+  gavl_dictionary_set_int(parent, GAVL_CONTROL_OFFLINE, 1);
+  
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_POWERBUTTON,
                                   "switch",
