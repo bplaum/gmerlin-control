@@ -231,7 +231,7 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
                                   GAVL_META_CLASS_CONTROL_LINK,
                                   "web",
                                   "Web interface");
-  gavl_dictionary_set_string(parent, GAVL_META_URI, "#");
+  gavl_dictionary_set_string(ctrl, GAVL_META_URI, "#");
   }
 
 static void * create_shellyplug()

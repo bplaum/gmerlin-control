@@ -462,7 +462,13 @@ int main(int argc, char ** argv)
   else
     {
     gavl_url_split(addr, &protocol, NULL, NULL, NULL, NULL, NULL);
-  
+
+    if(!protocol)
+      {
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Protocol missing");
+      return EXIT_FAILURE;
+      }
+          
     if(!(info = bg_plugin_find_by_protocol(protocol, BG_PLUGIN_CONTROL)))
       {
       gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Plugin for protocol %s not found", protocol);
@@ -505,7 +511,18 @@ int main(int argc, char ** argv)
 
   if(flags & FLAG_REMOTE)
     {
+    if(flags & FLAG_DUMP_CONTROLS)
+      {
+      char * xml;
+      
+      
+      gavl_dprintf("Got contols\n");
+      gavl_dictionary_dump(&controls, 2);
+      gavl_dprintf("\n");
+      }
+    
     bg_cmdline_parse(commands, &argc, &argv, NULL);
+
     }
   else
     {

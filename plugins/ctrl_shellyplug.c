@@ -57,8 +57,15 @@ static void set_offline(shelly_t * s)
   s->status = STATE_OFFLINE;
   s->last_poll_time = gavl_time_get_monotonic();
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s seems to be offline", s->addr);
-  }
   
+  }
+
+static void set_online(shelly_t * s)
+  {
+  gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s is now online", s->addr);
+  
+  }
+
 static int handle_msg(shelly_t * s)
   {
   switch(s->cmd->NS)
@@ -357,7 +364,7 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   {
   gavl_dictionary_t * ctrl;
   gavl_value_t val1, val2;
-  //  shelly_t * s = priv;
+  shelly_t * s = priv;
 
   gavl_value_init(&val1);
   gavl_value_init(&val2);
@@ -381,6 +388,12 @@ static void get_controls_shellyplug(void * priv, gavl_dictionary_t * parent)
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_HIGH, 1000.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_VALUE, 0.0);
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
+
+  ctrl = gavl_control_add_control(parent,
+                                  GAVL_META_CLASS_CONTROL_LINK,
+                                  "web",
+                                  "Web interface");
+  gavl_dictionary_set_string(ctrl, GAVL_META_URI, s->addr);
   
   }
 

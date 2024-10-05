@@ -870,6 +870,33 @@ static int handle_get(bg_http_connection_t * conn, void * data)
   return 1;
   }
 
+static int handle_get_controls(bg_http_connection_t * conn, void * data)
+  {
+  char * xml;
+  int len;
+  int result = 0;
+  control_center_t * c = data;
+
+  xml = bg_dictionary_save_xml_string(&c->controls, "CONTROLS");
+  len = strlen(xml);
+  
+  bg_http_connection_init_res(conn, conn->protocol, 200, "OK");
+  gavl_dictionary_set_string(&conn->res, "Content-Type", "application/xml");
+  gavl_dictionary_set_int(&conn->res, "Content-Length", len);
+
+  if(!bg_http_connection_write_res(conn))
+    {
+    bg_http_connection_clear_keepalive(conn);
+    }
+  result = 1;
+  
+  if(result && !gavl_socket_write_data(conn->fd, xml, len))
+    bg_http_connection_clear_keepalive(conn);
+  
+  return 1;
+  
+  }
+
 int controlcenter_init(control_center_t * c)
   {
   memset(c, 0, sizeof(*c));
@@ -887,6 +914,7 @@ int controlcenter_init(control_center_t * c)
   bg_http_server_add_handler(c->srv, handle_setrel, BG_HTTP_PROTO_HTTP, "/setrel", c);
   bg_http_server_add_handler(c->srv, handle_set, BG_HTTP_PROTO_HTTP, "/set", c);
   bg_http_server_add_handler(c->srv, handle_get, BG_HTTP_PROTO_HTTP, "/get", c);
+  bg_http_server_add_handler(c->srv, handle_get_controls, BG_HTTP_PROTO_HTTP, "/controls", c);
   
   bg_http_server_set_static_path(c->srv, "/static");
   bg_http_server_add_static_path(c->srv, "/static2", DATA_DIR "/web");
