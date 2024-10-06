@@ -338,6 +338,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
           else if(!strcmp(var, "color"))
             {
             memcpy(s->color.v.color, val.v.color, 3*sizeof(val.v.color[0]));
+            //            fprintf(stderr, "Got color: %f %f %f\n", val.v.color[0], val.v.color[1], val.v.color[2]);
             s->flags |= COLOR_CHANGED;
             }
 #else
@@ -414,7 +415,7 @@ static int update_shellybulb(void * priv)
                         (int)(s->color.v.color[2]*255.0+0.5),
                         s->temperature, s->brightness, s->mode, s->effect,
                         (s->switch_val ? "on" : "off"));
-    fprintf(stderr, "JSON: %f,%f,%f %s\n", s->color.v.color[0], s->color.v.color[1], s->color.v.color[2], json);
+    //    fprintf(stderr, "JSON: %f,%f,%f %s\n", s->color.v.color[0], s->color.v.color[1], s->color.v.color[2], json);
 #else
     if(s->flags & HS_CHANGED)
       {
