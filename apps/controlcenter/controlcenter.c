@@ -742,6 +742,9 @@ static int handle_set_internal(bg_http_connection_t * conn, void * data, int rel
     {
     control_plugin_t * p;
 
+    //    fprintf(stderr, "Got value:\n");
+    //    gavl_value_dump(&val, 2);
+    //    fprintf(stderr, "\n");
     
     if(!(p = get_plugin(c, conn->path)))
       bg_http_connection_init_res(conn, conn->protocol, 404, "Not Found");

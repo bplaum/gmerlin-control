@@ -256,6 +256,9 @@ gavl_type_t gavl_control_get_type(const gavl_dictionary_t * ctrl)
   //    return GAVL_TYPE_STRING;
   if(!strcmp(klass, GAVL_META_CLASS_CONTROL_POWERBUTTON))
     return GAVL_TYPE_INT;
+
+  if(!strcmp(klass, GAVL_META_CLASS_CONTROL_RGBCOLOR))
+    return GAVL_TYPE_COLOR_RGB;
   
   
   return GAVL_TYPE_UNDEFINED;
