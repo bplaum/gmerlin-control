@@ -64,7 +64,10 @@ static void set_status(marantz_t * m, int status)
       gavl_io_destroy(m->io);
       m->io = NULL;
       }
+    gavl_control_set_online(m->ctrl.evt_sink, "/", 0);
     }
+  else if(m->status == STATUS_IDLE)
+    gavl_control_set_online(m->ctrl.evt_sink, "/", 1);
   }
 
 static void queue_msg(marantz_t * m, const char * cmd)
@@ -491,6 +494,13 @@ static void get_controls_marantz(void * priv, gavl_dictionary_t * parent)
 
   gavl_control_add_option(ctrl, "M CH IN+NEURAL:X", "5/7 Channel + Neural:X");
   gavl_control_add_option(ctrl, "VIRTUAL",       "Virtual");
+  gavl_control_add_option(ctrl, "MOVIE",         "Movie");
+  gavl_control_add_option(ctrl, "MUSIC",         "Music");
+  gavl_control_add_option(ctrl, "ROCK ARENA",    "Rock Arena");
+  gavl_control_add_option(ctrl, "JAZZ CLUB",     "Jazz Club");
+  gavl_control_add_option(ctrl, "MONO MOVIE",    "Mono Movie");
+  gavl_control_add_option(ctrl, "STANDARD",      "Standard");
+  gavl_control_add_option(ctrl, "MATRIX",        "Matrix");
 
   /* Web interface */
   
