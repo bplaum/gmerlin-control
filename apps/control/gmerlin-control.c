@@ -513,7 +513,7 @@ int main(int argc, char ** argv)
     {
     if(flags & FLAG_DUMP_CONTROLS)
       {
-      char * xml;
+      //      char * xml;
       
       
       gavl_dprintf("Got contols\n");

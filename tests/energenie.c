@@ -299,7 +299,7 @@ static int logout()
 
   gavl_http_request_init(&request, "GET", "/login.html", "HTTP/1.1");
   gavl_dictionary_set_string(&request, "Accept", "*/*");
-  gavl_dictionary_set_string_nocopy(&request, "Referer", bg_sprintf("http://%s/", address));
+  gavl_dictionary_set_string_nocopy(&request, "Referer", gavl_sprintf("http://%s/", address));
   
   gavl_buffer_init(&res_body);
   
