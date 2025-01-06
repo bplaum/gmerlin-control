@@ -81,6 +81,39 @@ AC_DEFINE([HAVE_PULSEAUDIO])
 fi
 
 dnl
+dnl Optional libraries
+dnl
+AH_TEMPLATE([HAVE_WIREPLUMBER],
+            [Do we have wireplumberaudio installed?])
+
+have_wireplumber="false"
+
+
+AC_ARG_ENABLE(wireplumber,
+[AC_HELP_STRING([--disable-wireplumber],[Disable wireplumber (default: autodetect)])],
+[case "${enableval}" in
+   yes) test_wireplumber=true ;;
+   no)  test_wireplumber=false ;;
+esac],[test_wireplumber=true])
+
+if test x$test_wireplumber = xtrue; then
+
+PKG_CHECK_MODULES(WIREPLUMBER, wireplumber-0.4, have_wireplumber="true", have_wireplumber="false")
+
+fi
+
+AC_SUBST(WIREPLUMBER_REQUIRED)
+AC_SUBST(WIREPLUMBER_LIBS)
+AC_SUBST(WIREPLUMBER_CFLAGS)
+
+AM_CONDITIONAL(HAVE_WIREPLUMBER, test x$have_wireplumber = xtrue)
+
+if test "x$have_wireplumber" = "xtrue"; then
+AC_DEFINE([HAVE_WIREPLUMBER])
+fi
+
+
+dnl
 dnl LDFLAGS for plugins
 dnl
 
