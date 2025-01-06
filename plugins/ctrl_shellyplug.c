@@ -60,11 +60,13 @@ static void set_offline(shelly_t * s)
   
   }
 
+#if 0
 static void set_online(shelly_t * s)
   {
   gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Shellyplug at %s is now online", s->addr);
   
   }
+#endif
 
 static int handle_msg(shelly_t * s)
   {
