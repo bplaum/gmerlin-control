@@ -118,7 +118,11 @@ static void pa_sink_cb(pa_context *c, const pa_sink_info *l, int eol, void *user
       gavl_dictionary_set_int(opt, META_NUM_CHANNELS, l->volume.channels);
       }
 
-    volume = 100.0 * pa_sw_volume_to_linear(pa_cvolume_avg(&l->volume));
+    //    volume = 100.0 * pa_sw_volume_to_linear(pa_cvolume_avg(&l->volume));
+    volume = 100.0 * (double)pa_cvolume_avg(&l->volume) / (double)PA_VOLUME_NORM;
+    
+    // fprintf(stderr, "Volume changed: %d %f\n", pa_cvolume_avg(&l->volume), volume);
+    
     gavl_dictionary_set_float(opt, META_VOLUME, volume);
 
     if(pulse->default_sink_name &&
@@ -142,8 +146,8 @@ static void pa_server_cb(pa_context *c, const pa_server_info *l, void *userdata)
   const gavl_dictionary_t * opt;
   pulse_t * pulse = userdata;
   
-  fprintf(stderr, "Server changed\n");
-  fprintf(stderr, "Default sink: %s\n", l->default_sink_name);
+  //  fprintf(stderr, "Server changed\n");
+  //  fprintf(stderr, "Default sink: %s\n", l->default_sink_name);
   
   pulse->default_sink_name = gavl_strrep(pulse->default_sink_name, l->default_sink_name);
   
@@ -226,9 +230,8 @@ static int handle_msg_pulse(void * priv, gavl_msg_t * msg)
               
               vol.channels = num_channels;
               for(i = 0; i < vol.channels; i++)
-                {
-                vol.values[i] = pa_sw_volume_from_linear(volume);
-                }
+                vol.values[i] = (int)(volume * (double)PA_VOLUME_NORM + 0.5);
+              
               op = pa_context_set_sink_volume_by_name(pulse->pa_ctx,
                                                       pulse->default_sink_name,
                                                       &vol,NULL, NULL);
@@ -252,7 +255,7 @@ static int handle_msg_pulse(void * priv, gavl_msg_t * msg)
               pa_operation_unref(op);
               }
             
-            fprintf(stderr, "Default output %s\n", gavl_value_get_string(&val));
+            //            fprintf(stderr, "Default output %s\n", gavl_value_get_string(&val));
             
             }
           
@@ -330,7 +333,7 @@ static void pa_subscribe_callback(pa_context *c,
       if((type & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_SINK)
         {
         /* Sink removed */
-        fprintf(stderr, "Sink removed\n");
+        //        fprintf(stderr, "Sink removed\n");
         }
       
       break;
@@ -342,7 +345,7 @@ static void pa_subscribe_callback(pa_context *c,
         {
         /* Sink removed */
         char * id;
-        fprintf(stderr, "Sink removed\n");
+        //        fprintf(stderr, "Sink removed\n");
 
         id = gavl_sprintf("%d", idx);
         gavl_control_delete_option(pulse->default_sink, id);
