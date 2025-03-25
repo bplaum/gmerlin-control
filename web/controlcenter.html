@@ -21,7 +21,7 @@
 <body onload="global_init();">
 
 <header>
-  <table>
+  <table style="width: 100%;">
     <tr>
       <td id="header-icon" class="icon-x">
       </td>
@@ -29,12 +29,15 @@
         <span id="header-path"></span><br>
         <span id="header-status"></span>
       </td>
+      <td style="text-align: right;">
+	<button class="icon-levelup clickable" onclick="history.back()"></button>
+      </td>
     </tr>
   </table>
   
 </header>
 
-<div id="main" style="width: 100%">
+<div id="main" style="width: 100%;">
 
   <div id="browser" style="width: 100%;"></div>
 
