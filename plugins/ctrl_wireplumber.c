@@ -318,6 +318,8 @@ static void destroy_wireplumber(void *priv)
   
   if(wireplumber->default_sink_name)
     free(wireplumber->default_sink_name);
+
+  gavl_buffer_free(&wireplumber->buf);
   
   free(wireplumber);
   }

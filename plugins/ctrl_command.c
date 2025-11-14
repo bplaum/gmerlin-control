@@ -57,6 +57,7 @@ static void * create_command()
 static void destroy_command(void *priv)
   {
   command_t * s = priv;
+  bg_controllable_cleanup(&s->ctrl);
   free(s);
   }
 

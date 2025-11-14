@@ -412,6 +412,8 @@ static void destroy_marantz(void *priv)
 
   if(m->host)
     free(m->host);
+
+  bg_controllable_cleanup(&m->ctrl);
   
   free(m);
   }
