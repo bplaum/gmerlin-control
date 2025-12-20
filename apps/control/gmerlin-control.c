@@ -476,7 +476,7 @@ int main(int argc, char ** argv)
       }
     if(!(h = bg_plugin_load(info)))
       {
-      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Couldn't load plugin %s", info->name);
+      gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Couldn't load plugin %s", bg_plugin_info_get_name(info));
       return EXIT_FAILURE;
       }
   
