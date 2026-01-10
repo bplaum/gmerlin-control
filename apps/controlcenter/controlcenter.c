@@ -640,7 +640,7 @@ static void load_controls(control_center_t * c)
   glob_t gl;
   char * pattern;
   int idx = 0;
-  char * dir = gavl_search_config_dir(PACKAGE, "controls");
+  char * dir = gavl_search_config_dir(PACKAGE, "controls", NULL);
 
   gavl_control_create_root(&c->controls);
   
