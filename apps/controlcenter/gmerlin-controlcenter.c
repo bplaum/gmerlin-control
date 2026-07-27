@@ -132,7 +132,7 @@ int main(int argc, char ** argv)
   controlcenter_init(&center);
   
   bg_cmdline_init(&app_data);
-  bg_cmdline_parse(global_options, &argc, &argv, NULL);
+  bg_cmdline_parse(global_options, &argc, &argv);
 
   bg_app_init("gmerlin-controlcenter", label, "controlcenter");
   

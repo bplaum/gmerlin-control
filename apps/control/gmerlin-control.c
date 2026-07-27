@@ -447,11 +447,11 @@ int main(int argc, char ** argv)
   bg_cmdline_init(&app_data);
   
   if(argc < 2)
-    bg_cmdline_print_help(argv[0], 0);
+    bg_cmdline_print_help(argv[0]);
 
   bg_cmdline_init(&app_data);
 
-  bg_cmdline_parse(options, &argc, &argv, NULL);
+  bg_cmdline_parse(options, &argc, &argv);
   
   /* Create handle */
 
@@ -521,7 +521,7 @@ int main(int argc, char ** argv)
       gavl_dprintf("\n");
       }
     
-    bg_cmdline_parse(commands, &argc, &argv, NULL);
+    bg_cmdline_parse(commands, &argc, &argv);
 
     }
   else
@@ -544,7 +544,7 @@ int main(int argc, char ** argv)
       if((flags & FLAG_HAVE_STATE) && !(flags & FLAG_COMMANDS_SENT))
         {
         gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Got state");
-        bg_cmdline_parse(commands, &argc, &argv, NULL);
+        bg_cmdline_parse(commands, &argc, &argv);
         flags |= FLAG_COMMANDS_SENT;
         }
     
