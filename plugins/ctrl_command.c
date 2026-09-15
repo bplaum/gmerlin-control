@@ -1,15 +1,18 @@
 
 #include <string.h>
+#include <signal.h>
 
 #include <config.h>
 
 #include <gmerlin/translation.h>
 #include <gmerlin/plugin.h>
 #include <gmerlin/subprocess.h>
+#include <gmerlin/state.h>
 
 #include <gavl/log.h>
 #define LOG_DOMAIN "command"
 #include <gavl/utils.h>
+#include <gavl/state.h>
 
 #include <control.h>
 
@@ -19,6 +22,8 @@ typedef struct
   char * cmd;
   bg_controllable_t ctrl;
   bg_subprocess_t * proc;
+  
+  int service;
   } command_t;
 
 static int handle_msg(void * priv, gavl_msg_t * msg)
@@ -39,6 +44,65 @@ static int handle_msg(void * priv, gavl_msg_t * msg)
           s->proc = bg_subprocess_create(s->cmd, 0, 0, 0);
           break;
         }
+      break;
+    case BG_MSG_NS_STATE:
+      switch(msg->ID)
+        {
+        case BG_CMD_SET_STATE:
+          {
+          gavl_value_t val;
+          const char * ctx;
+          const char * var;
+
+          int last = 0;
+          
+          gavl_value_init(&val);
+          
+          gavl_msg_get_state(msg,
+                             &last,
+                             &ctx,
+                             &var,
+                             &val, NULL);
+
+          if(!strcmp(var, "on"))
+            {
+            int on = 0;
+            gavl_value_get_int(&val, &on);
+
+            // fprintf(stderr, "set_switch: %d\n", on);
+
+            if(s->proc && on)
+              {
+              gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Service already running");
+              return 1;
+              }
+            if(!s->proc && !on)
+              {
+              gavl_log(GAVL_LOG_ERROR, LOG_DOMAIN, "Service isn't running");
+              return 1;
+              }
+
+            if(!s->proc) // Switch on
+              {
+              s->proc = bg_subprocess_create(s->cmd, 0, 0, 0);
+              bg_state_set(NULL, 1, NULL, "on", 
+                           &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+              }
+            else // Switch off: We kill the process asynchronously
+              {
+              bg_subprocess_kill(s->proc, SIGTERM);
+              }
+            
+            }
+
+          gavl_value_free(&val);
+          break;
+          }
+        }
+      break;
+
+
+
     }
   return 1;
   }
@@ -74,6 +138,19 @@ static int update_command(void * priv)
     {
     bg_subprocess_close(s->proc);
     s->proc = NULL;
+
+    if(s->service)
+      {
+      gavl_value_t val;
+      gavl_value_init(&val);
+      gavl_value_set_int(&val, 0);
+
+      bg_state_set(NULL, 1, NULL, "on", 
+                   &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+      
+      gavl_value_free(&val);
+      };
+    
     return 1;
     }
   return 0;
@@ -84,6 +161,9 @@ static int open_command(void * priv, const char * uri)
   const char * pos;
   command_t * s = priv;
 
+  if(gavl_string_starts_with(uri, "service://"))
+    s->service = 1;
+  
   if((pos = strstr(uri, "://")))
     s->cmd = gavl_strdup(pos+3);
   else
@@ -94,10 +174,23 @@ static int open_command(void * priv, const char * uri)
 
 static void get_controls_command(void * priv, gavl_dictionary_t * parent)
   {
-  gavl_control_add_control(parent,
-                           GAVL_META_CLASS_CONTROL_BUTTON,
-                           "run",
-                           gavl_dictionary_get_string(parent, GAVL_META_LABEL));
+  command_t * s = priv;
+
+  if(s->service)
+    {
+    gavl_control_add_control(parent,
+                             GAVL_META_CLASS_CONTROL_POWERBUTTON,
+                             "on",
+                             gavl_dictionary_get_string(parent, GAVL_META_LABEL));
+    }
+  else
+    {
+    gavl_control_add_control(parent,
+                             GAVL_META_CLASS_CONTROL_BUTTON,
+                             "run",
+                             gavl_dictionary_get_string(parent, GAVL_META_LABEL));
+    }
+
   
   }
 
@@ -117,7 +210,7 @@ bg_control_plugin_t the_plugin =
     .priority =         1,
     },
   
-  .protocols = "command",
+  .protocols = "command service",
 
   /* Update the internal state, send messages. A zero return value incicates that
      nothing important happened and the client can savely sleep (e.g. for some 10s of

@@ -14,47 +14,31 @@
 
 #include <gavl/http.h>
 #include <gavl/log.h>
-#define LOG_DOMAIN "shellybulb"
+#define LOG_DOMAIN "shellyduobulbg3"
 #include <control.h>
+#include <shellyrpc.h>
 #include <gavl/utils.h>
 
+// #define USE_RGBCOLOR
+
+#define RESPONSE_TOPIC "gmerlin-shellyduobulbg3"
 
 /* Flags */
 
-#define COLOR_CHANGED       (1<<0)
-#define HS_CHANGED          (1<<1)
-#define TEMPERATURE_CHANGED (1<<2)
-#define BRIGHTNESS_CHANGED  (1<<3)
-#define GAIN_CHANGED        (1<<4)
-#define MODE_CHANGED        (1<<5)
-#define EFFECT_CHANGED      (1<<6)
-#define SWITCH_CHANGED      (1<<7)
+#define TEMPERATURE_CHANGED (1<<0)
+#define BRIGHTNESS_CHANGED  (1<<1)
+#define SWITCH_CHANGED      (1<<2)
 // #define FLAG_INIT           (1<<8)
 
 // #define SWITCH_CHANGED (1<<1)
 
-static const char * mode_color = "color";
-static const char * mode_white = "white";
-
-// static void rgb2hsv(float in_r, float in_g, float in_b, float * out_h, float * out_s, float * out_v);
-// static void hsv2rgb(float in_h, float in_s, float in_v, float * out_r, float * out_g, float * out_b);
-
-//static void rgb2hsv_i(int in_r, int in_g, int in_b, int * out_h, int * out_s, int * out_v);
-// static void hsv2rgb_i(int in_h, int in_s, int in_v, int * out_r, int * out_g, int * out_b);
-
+// shelly_rpc_init(shelly_rpc_t * r, bg_controllable_t * ctrl, const char * device);
 
 typedef struct
   {
-  //  gavl_io_t * io;
+  shelly_rpc_t r;
+  
   bg_controllable_t ctrl;
-
-  /*
-  gavl_time_t last_poll_time;
-  char * addr;
-  gavl_buffer_t json_buffer;
-  int status;
-  gavl_msg_t * cmd;
-  */
 
   int flags;
   
@@ -63,16 +47,8 @@ typedef struct
   
   gavl_dictionary_t state;
 
-  int switch_val;
-  gavl_value_t color;
-  int brightness;
-  int temperature;
-
-  int effect;
-  const char * mode;
-
-  char * web_uri;
   
+  char * web_uri;
   } shelly_t;
 
 static void update_web_uri(shelly_t * s)
@@ -89,6 +65,70 @@ static void update_web_uri(shelly_t * s)
   gavl_dictionary_free(&dict);
   }
 
+static void update_status(void * data, const char * name, const gavl_dictionary_t * dict)
+  {
+  shelly_t * s = data;
+
+  if(!strcmp(name, "wifi"))
+    {
+    const char * ip;
+    
+    /* Get device IP */
+    fprintf(stderr, "Got Wifi config\n");
+
+    ip = gavl_dictionary_get_string(dict, "sta_ip");
+    
+    if(ip)
+      {
+      char * addr;
+      addr = gavl_sprintf("http://%s", ip);
+      gavl_log(GAVL_LOG_INFO, LOG_DOMAIN, "Got web URI: %s", addr);
+      s->web_uri = gavl_strrep(s->web_uri, addr);
+      update_web_uri(s);
+      free(addr);
+      }
+    
+    }
+  else if(!strcmp(name, "cct:0"))
+    {
+    const gavl_value_t * val;
+    
+    /* */
+    //    fprintf(stderr, "Got Bulb config\n");
+    //    gavl_dictionary_dump(dict, 2);
+#if 1
+    if((val = gavl_dictionary_get(dict, "brightness")))
+      {
+      bg_state_set(&s->state, 1, NULL, "brightness", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+      
+      }
+    if((val = gavl_dictionary_get(dict, "output")))
+      {
+      bg_state_set(&s->state, 1, NULL, "switch", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+      }
+    if((val = gavl_dictionary_get(dict, "apower")))
+      {
+      bg_state_set(&s->state, 1, NULL, "power", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+      }
+    if((val = gavl_dictionary_get(dict, "ct")))
+      {
+      bg_state_set(&s->state, 1, NULL, "temperature", 
+                   val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
+      }
+    
+#endif
+    
+    
+    
+    }
+  
+  //  fprintf(stderr, "update_status %s\n", name);
+  //  gavl_dictionary_dump(dict, 2);
+  
+  }
 
 static int handle_msg(void * data, gavl_msg_t * msg)
   {
@@ -102,20 +142,23 @@ static int handle_msg(void * data, gavl_msg_t * msg)
         {
         case GAVL_MSG_MQTT:
           {
-          gavl_value_t val;
+          //          gavl_value_t val;
           const gavl_value_t  * buf_val;
           const gavl_buffer_t * buf;
                     
           const char * id = gavl_dictionary_get_string(&msg->header, GAVL_MSG_CONTEXT_ID);
           /* Got mqtt message */
-          //          fprintf(stderr, "Got mqtt message: %s\n", id);
-
+          fprintf(stderr, "Got mqtt message: %s\n", id);
+          
           if(!(buf_val = gavl_msg_get_arg_c(msg, 0)) ||
              !(buf = gavl_value_get_binary(buf_val)))
             {
             /* Error */
             return 1;
             }
+
+          gavl_hexdump(buf->buf, buf->len, 16);
+#if 0          
           
           if(!strcmp(id, "light/0/power"))
             {
@@ -170,20 +213,7 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             obj = json_tokener_parse((const char*)buf->buf);
             
             s->switch_val = bg_json_dict_get_bool(obj, "ison");
-
-            s->mode = bg_json_dict_get_string(obj, "mode");
             
-            if(!strcmp(s->mode, "color"))
-              s->mode = mode_color;
-            else
-              s->mode = mode_white;
-  
-            s->effect = bg_json_dict_get_int(obj, "effect");
-
-            s->color.v.color[0] = (double)bg_json_dict_get_int(obj, "red")/255.0;
-            s->color.v.color[1] = (double)bg_json_dict_get_int(obj, "green")/255.0;
-            s->color.v.color[2] = (double)bg_json_dict_get_int(obj, "blue")/255.0;
-
             s->brightness = bg_json_dict_get_int(obj, "brightness");
             s->temperature = bg_json_dict_get_int(obj, "temp");
             
@@ -200,9 +230,6 @@ static int handle_msg(void * data, gavl_msg_t * msg)
             bg_state_set(&s->state, 0, NULL, "switch", 
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
             gavl_value_reset(&val);
-            bg_state_set(&s->state, 0, NULL, "color", 
-                         &s->color, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
-            
             
             gavl_value_set_int(&val, s->temperature);
             bg_state_set(&s->state, 0, NULL, "temperature", 
@@ -214,39 +241,22 @@ static int handle_msg(void * data, gavl_msg_t * msg)
                          &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
             gavl_value_reset(&val);
   
-            gavl_value_set_string(&val, s->mode);
-            bg_state_set(&s->state, 0, NULL, "mode", 
-                         &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
-            gavl_value_reset(&val);
-  
-            gavl_value_set_string_nocopy(&val, gavl_sprintf("%d", s->effect));
-            bg_state_set(&s->state, 1, NULL, "effect", 
-                         &val, s->ctrl.evt_sink, BG_MSG_STATE_CHANGED);
-            gavl_value_reset(&val);
-
-            //            fprintf(stderr, "Updated complete state\n");
-            //            gavl_dictionary_dump(&s->state, 2);
-            
-            }
-          else if(!strcmp(id, "color/0"))
-            {
-            /* on or off */
             
             }
           else if(!strcmp(id, "online"))
             {
             if(!strcmp((const char*)buf->buf, "true"))
               {
-              //              fprintf(stderr, "shellybulb is online\n");
+              fprintf(stderr, "shellybulb is online\n");
               gavl_control_set_online(s->ctrl.evt_sink, "/", 1);
               }
             else
               {
-              //              fprintf(stderr, "shellybulb is offline\n");
+              fprintf(stderr, "shellybulb is offline\n");
               gavl_control_set_online(s->ctrl.evt_sink, "/", 0);
               }
             }
-          
+#endif
           break;
           }
         }
@@ -270,42 +280,21 @@ static int handle_msg(void * data, gavl_msg_t * msg)
                              &ctx,
                              &var,
                              &val, NULL);
-
-          //          fprintf(stderr, "Set state shellybulb %s %s\n", ctx, var);
           
           if(!strcmp(var, "switch"))
             {
-            s->switch_val = val.v.i;
+            gavl_dictionary_set(&s->state, var, &val);
             s->flags |= SWITCH_CHANGED;
-            }
-          else if(!strcmp(var, "mode"))
-            {
-            if(!strcmp(val.v.str, "color"))
-              s->mode = mode_color;
-            else
-              s->mode = mode_white;
-            s->flags |= MODE_CHANGED;
-            }
-          else if(!strcmp(var, "color"))
-            {
-            memcpy(s->color.v.color, val.v.color, 3*sizeof(val.v.color[0]));
-            //            fprintf(stderr, "Got color: %f %f %f\n", val.v.color[0], val.v.color[1], val.v.color[2]);
-            s->flags |= COLOR_CHANGED;
             }
           else if(!strcmp(var, "temperature"))
             {
-            s->temperature = val.v.i;
+            gavl_dictionary_set(&s->state, var, &val);
             s->flags |= TEMPERATURE_CHANGED;
             }
           else if(!strcmp(var, "brightness"))
             {
-            s->brightness = val.v.i;
+            gavl_dictionary_set(&s->state, var, &val);
             s->flags |= BRIGHTNESS_CHANGED;
-            }
-          else if(!strcmp(var, "effect"))
-            {
-            s->effect = atoi(val.v.str);
-            s->flags |= EFFECT_CHANGED;
             }
           break;
           }
@@ -321,35 +310,34 @@ static int update_shellybulb(void * priv)
   int ret = 0;
   shelly_t * s = priv;
 
-  if(s->flags & (COLOR_CHANGED | HS_CHANGED | TEMPERATURE_CHANGED | BRIGHTNESS_CHANGED |
-                 MODE_CHANGED | EFFECT_CHANGED | GAIN_CHANGED | SWITCH_CHANGED))
+  if(s->flags & (TEMPERATURE_CHANGED | BRIGHTNESS_CHANGED | SWITCH_CHANGED))
     {
     char * json = NULL;
-    json = gavl_sprintf("{ \"red\": %d, \"green\": %d, \"blue\": %d, \"gain\": 100, "
-                        "\"temp\": %d, \"brightness\": %d, \"mode\": \"%s\", \"effect\": %d, "
-                        "\"turn\": \"%s\" }",
-                        (int)(s->color.v.color[0]*255.0+0.5),
-                        (int)(s->color.v.color[1]*255.0+0.5),
-                        (int)(s->color.v.color[2]*255.0+0.5),
-                        s->temperature, s->brightness, s->mode, s->effect,
-                        (s->switch_val ? "on" : "off"));
-    //    fprintf(stderr, "JSON: %f,%f,%f %s\n", s->color.v.color[0], s->color.v.color[1], s->color.v.color[2], json);
-    
-    s->flags &= ~(COLOR_CHANGED | HS_CHANGED | TEMPERATURE_CHANGED | BRIGHTNESS_CHANGED |
-                  MODE_CHANGED | EFFECT_CHANGED | GAIN_CHANGED | SWITCH_CHANGED);
 
+    int switch_val = 0;
+    int brightness = 0;
+    int temperature = 0;
+
+    gavl_dictionary_get_int(&s->state, "switch", &switch_val);
+    gavl_dictionary_get_int(&s->state, "brightness", &brightness);
+    gavl_dictionary_get_int(&s->state, "temperature", &temperature);
+    
+    json = gavl_sprintf("{\"id\":1,\"src\":\""RESPONSE_TOPIC"\",\"method\":\"CCT.Set\",\"params\":{\"id\":0,"
+                        "\"on\":%s,\"brightness\":%d,\"ct\":%d}}",
+                        (switch_val ? "true" : "false"),
+                        brightness, temperature);
+    
+    s->flags &= ~(TEMPERATURE_CHANGED | BRIGHTNESS_CHANGED | SWITCH_CHANGED);
+    
     if(json)
       {
       gavl_buffer_t buf;
-      char * topic = gavl_sprintf("%s/color/0/set", s->topic);
       
       gavl_buffer_init(&buf);
       buf.buf = (uint8_t*)json;
       buf.len = strlen(json);
 
-      //    fprintf(stderr, "Publishing: %s\n%s\n", topic, json);
-      
-      bg_mqtt_publish(topic, &buf, 1, 0);
+      bg_mqtt_publish(s->topic, &buf, 1, 0);
       free(json);
       }
     ret++;  
@@ -358,42 +346,42 @@ static int update_shellybulb(void * priv)
   return ret;
   }
 
+
 static int open_shellybulb(void * priv, const char * addr)
   {
-  gavl_buffer_t buf;
   char * path = NULL;
   shelly_t * s = priv;
-  char * topic;
-  const char * pos;
 
   if(!gavl_url_split(addr, NULL, NULL, NULL, NULL, NULL, &path) ||
      !path)
     return 0;
   
-  s->topic = gavl_strdup(path+1);
+  
+  s->topic = gavl_sprintf("%s/rpc", path+1);
+  s->dev = gavl_strdup(path+1);
   free(path);
 
-  if(!(pos = strrchr(s->topic, '/')))
-    return 0;
+  fprintf(stderr, "%s %s\n", s->topic, s->dev);
+  
+  shelly_rpc_init(&s->r, &s->ctrl, s->dev);
 
-  s->dev = gavl_strdup(pos+1);
+  s->r.update_status = update_status;
+  s->r.data = s;
   
-  bg_mqtt_subscribe(s->topic, s->ctrl.cmd_sink);
-  
-  
-  /* Request announcement */
-  
-  topic = gavl_sprintf("%s/command", s->topic);
-  
+  /* Request status */
+#if 0  
   gavl_buffer_init(&buf);
-  buf.buf = (uint8_t*)"announce";
+
+  buf.buf = (uint8_t*)"{\"id\":1,\"src\":\"user_1\",\"method\":\"Wifi.GetStatus\"}";
   buf.len = strlen((const char*)buf.buf);
   
-  fprintf(stderr, "Publishing: %s\n", topic);
-  
-  bg_mqtt_publish(topic, &buf, 1, 0);
-
+  fprintf(stderr, "Publishing: %s\n", s->topic);
+  bg_mqtt_publish(s->topic, &buf, 1, 0);
+#endif
   //  gavl_control_set_online(s->ctrl.evt_sink, "/", 0);
+
+  
+  
   
   return 1;
   }
@@ -440,35 +428,15 @@ static void get_controls_shellybulb(void * priv, gavl_dictionary_t * parent)
   gavl_dictionary_set_float(ctrl, GAVL_CONTROL_OPTIMUM, 0.0);
   gavl_dictionary_set_int(ctrl, GAVL_CONTROL_DIGITS, 2);
   
-  ctrl = gavl_control_add_control(parent,
-                                  GAVL_META_CLASS_CONTROL_PULLDOWN,
-                                  "mode",
-                                  "Mode");
-  gavl_control_add_option(ctrl, mode_color, "Color");
-  gavl_control_add_option(ctrl, mode_white, "White");
-
-  ctrl = gavl_control_add_control(parent,
-                                  GAVL_META_CLASS_CONTROL_RGBCOLOR,
-                                  "color",
-                                  "Color");
-  
-  create_slider(parent, "temperature", "Temperature", 3000, 6500);
+  create_slider(parent, "temperature", "Temperature", 2700, 6500);
   create_slider(parent, "brightness", "Brightness", 0, 100);
   
-  ctrl = gavl_control_add_control(parent,
-                                  GAVL_META_CLASS_CONTROL_PULLDOWN,
-                                  "effect",
-                                  "Effect");
-  gavl_control_add_option(ctrl, "0", "Off");
-  gavl_control_add_option(ctrl, "1", "Meteor Shower");
-  gavl_control_add_option(ctrl, "2", "Gradual Change");
-  gavl_control_add_option(ctrl, "3", "Flash");
-
+  
   ctrl = gavl_control_add_control(parent,
                                   GAVL_META_CLASS_CONTROL_LINK,
                                   "web",
                                   "Web interface");
-  gavl_dictionary_set_string(parent, GAVL_META_URI, "#");
+  gavl_dictionary_set_string(ctrl, GAVL_META_URI, "#");
   
   }
 
@@ -479,7 +447,6 @@ static void * create_shellybulb()
   bg_controllable_init(&s->ctrl,
                        bg_msg_sink_create(handle_msg, s, 1),
                        bg_msg_hub_create(1));
-  gavl_value_set_color_rgb(&s->color);
   return s;
   }
 
@@ -491,9 +458,6 @@ static void destroy_shellybulb(void *priv)
     free(s->web_uri);
   if(s->topic)
     free(s->topic);
-  if(s->dev)
-    free(s->dev);
-  gavl_value_free(&s->color);
   free(s);
   }
 
@@ -508,9 +472,9 @@ bg_control_plugin_t the_plugin =
   .common =
     {
     BG_LOCALE,
-    .name =      "ctrl_shellybulb_m",
-    .long_name = TRS("Shelly bulb"),
-    .description = TRS("Shelly bulb"),
+    .name =      "ctrl_shellyduobulbg3",
+    .long_name = TRS("Shelly Duo Bulb G3"),
+    .description = TRS("Shelly Duo Bulb G3"),
     .type =     BG_PLUGIN_CONTROL,
     .flags =    0,
     .create =   create_shellybulb,
@@ -519,7 +483,7 @@ bg_control_plugin_t the_plugin =
     .priority =         1,
     },
   
-  .protocols = "shellybulb-m",
+  .protocols = "shellybulbduobulbg3",
 
   /* Update the internal state, send messages. A zero return value incicates that
      nothing important happened and the client can savely sleep (e.g. for some 10s of
@@ -535,136 +499,3 @@ bg_control_plugin_t the_plugin =
    to let the plugin loader obtain the API version */
 BG_GET_PLUGIN_API_VERSION;
 
-#if 0
-
-// https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
-
-static void rgb2hsv(float in_r, float in_g, float in_b, float * out_h, float * out_s, float * out_v)
-  {
-  double      min, max, delta;
-
-  min = in_r < in_g ? in_r : in_g;
-  min = min  < in_b ? min  : in_b;
-
-  max = in_r > in_g ? in_r : in_g;
-  max = max  > in_b ? max  : in_b;
-
-  *out_v = max;                                // v
-  delta = max - min;
-  if (delta < 0.00001)
-    {
-    *out_s = 0;
-    *out_h = 0; // undefined, maybe nan?
-    return;
-    }
-  if( max > 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
-  *out_s = (delta / max);                  // s
-  } else {
-  // if max is 0, then r = g = b = 0              
-  // s = 0, h is undefined
-  *out_s = 0.0;
-  *out_h = NAN;                            // its now undefined
-  return;
-  }
-  if( in_r >= max )                           // > is bogus, just keeps compilor happy
-    *out_h = ( in_g - in_b ) / delta;        // between yellow & magenta
-  else
-    if( in_g >= max )
-      *out_h = 2.0 + ( in_b - in_r ) / delta;  // between cyan & yellow
-    else
-      *out_h = 4.0 + ( in_r - in_g ) / delta;  // between magenta & cyan
-
-  *out_h *= 60.0;                              // degrees
-
-  if( *out_h < 0.0 )
-    *out_h += 360.0;
-
-  return;
-  }
-
-
-static void hsv2rgb(float in_h, float in_s, float in_v, float * out_r, float * out_g, float * out_b)
-  {
-  double      hh, p, q, t, ff;
-  long        i;
-  
-  if(in_s <= 0.0)
-    {       // < is bogus, just shuts up warnings
-    *out_r = in_v;
-    *out_g = in_v;
-    *out_b = in_v;
-    return;
-    }
-  hh = in_h;
-  if(hh >= 360.0) hh = 0.0;
-  hh /= 60.0;
-  i = (long)hh;
-  ff = hh - i;
-  p = in_v * (1.0 - in_s);
-  q = in_v * (1.0 - (in_s * ff));
-  t = in_v * (1.0 - (in_s * (1.0 - ff)));
-
-  switch(i)
-    {
-    case 0:
-      *out_r = in_v;
-      *out_g = t;
-      *out_b = p;
-      break;
-    case 1:
-      *out_r = q;
-      *out_g = in_v;
-      *out_b = p;
-      break;
-    case 2:
-      *out_r = p;
-      *out_g = in_v;
-      *out_b = t;
-      break;
-
-    case 3:
-      *out_r = p;
-      *out_g = q;
-      *out_b = in_v;
-      break;
-    case 4:
-      *out_r = t;
-      *out_g = p;
-      *out_b = in_v;
-      break;
-    case 5:
-    default:
-      *out_r = in_v;
-      *out_g = p;
-      *out_b = q;
-      break;
-    }
-  return;     
-  }
-
-#define FLOAT_TO_INT(f) (int)(f+0.5)
-
-static void rgb2hsv_i(int in_r, int in_g, int in_b, int * out_h, int * out_s, int * out_v)
-  {
-  float h, s, v;
-
-  rgb2hsv((float)in_r/255.0, (float)in_g/255.0, (float)in_b/255.0, &h, &s, &v);
-
-  *out_h = FLOAT_TO_INT(h);
-  *out_s = FLOAT_TO_INT(s*100.0);
-  *out_v = FLOAT_TO_INT(v*100.0);
-  }
-  
-static void hsv2rgb_i(int in_h, int in_s, int in_v, int * out_r, int * out_g, int * out_b)
-  {
-  float r, g, b;
-  
-  hsv2rgb((float)in_h, (float)in_s/100.0, (float)in_v/100.0, &r, &g, &b);
-
-  *out_r = FLOAT_TO_INT(r*255.0);
-  *out_g = FLOAT_TO_INT(g*255.0);
-  *out_b = FLOAT_TO_INT(b*255.0);
-  
-  }
-
-#endif

@@ -11,6 +11,7 @@
 static const char * status_names[] =
   {
     "switch:0",
+    "cct:0",
     "wifi",
     NULL
   };
@@ -47,7 +48,6 @@ static void report_status(shelly_rpc_t * r,
   
   }
 
-
 static int handle_mqtt(void * data, gavl_msg_t * msg)
   {
   gavl_value_t val;
@@ -62,6 +62,8 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
     /* Error */
     return 1;
     }
+
+  //  fprintf(stderr, "handle_mqtt %s %s\n", topic, (char*)(buf->buf));
   
   if(!strcmp(topic, "online"))
     {
@@ -81,11 +83,18 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
     }
   else if(gavl_string_starts_with(topic, "status/"))
     {
-    if(!bg_value_from_json_string_external(&val, (const char*)buf->buf))
+    const gavl_dictionary_t * dict;
+
+    if(!bg_value_from_json_string_external(&val, (const char*)buf->buf) ||
+       !(dict = gavl_value_get_dictionary(&val)))
       {
       /* Error */
       fprintf(stderr, "Parsing json failed: %s\n", (const char*)buf->buf);
       }
+    
+    if(r->update_status)
+      r->update_status(r->data, topic + strlen("status/"), dict);
+    
     //    fprintf(stderr, "Got status:\n");
     //    gavl_value_dump(&val, 2);
     }
@@ -123,7 +132,10 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
       /* Error */
       fprintf(stderr, "Parsing json failed: %s\n", (const char*)buf->buf);
       }
-        
+
+    //    fprintf(stderr, "Got result us: %s, them: %s\n", r->client_id, r->dev);
+    //    gavl_value_dump(&val, 2);
+#if 1   
     if(!(dict = gavl_value_get_dictionary(&val)) ||
        !gavl_dictionary_get_int(dict, "id", &id) ||
        (id != GET_STATUS_ID) ||
@@ -131,7 +143,26 @@ static int handle_mqtt(void * data, gavl_msg_t * msg)
        !(dst = gavl_dictionary_get_string(dict, "dst")) ||
        strcmp(src, r->dev) || strcmp(dst, r->client_id))
       return 1;
-
+#else
+    if(!(dict = gavl_value_get_dictionary(&val)))
+      return 1;
+      
+    if(!gavl_dictionary_get_int(dict, "id", &id))
+      return 1;
+      
+    if(id != GET_STATUS_ID)
+      return 1;
+      
+    if(!(src = gavl_dictionary_get_string(dict, "src")))
+      return 1;
+    
+    if(!(dst = gavl_dictionary_get_string(dict, "dst")))
+      return 1;
+    
+    if(strcmp(src, r->dev) || strcmp(dst, r->client_id))
+      return 1;
+#endif
+    
     dict = gavl_dictionary_get_dictionary(dict, "result");
     report_status(r, dict);
         
